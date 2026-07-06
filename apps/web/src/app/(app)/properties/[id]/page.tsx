@@ -1,23 +1,35 @@
 'use client';
 
-import { ArrowLeft, Bath, Bed, Building2, ImagePlus, Maximize, MapPin, Ruler } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bath,
+  Bed,
+  Building2,
+  ImagePlus,
+  LoaderCircle,
+  Maximize,
+  MapPin,
+  Ruler,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useState, type ChangeEvent, type ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAddPropertyMedia, useProperty } from '@/features/properties/api';
 import { operationLabel, statusClass, statusLabel } from '@/features/properties/labels';
 import { formatMoney } from '@/lib/format';
+import { compressPropertyImages } from '@/lib/images';
 
 export default function PropertyDetailPage(): ReactNode {
   const params = useParams<{ id: string }>();
   const { data: property, isLoading, isError } = useProperty(params.id);
   const [active, setActive] = useState(0);
   const [showPhotoForm, setShowPhotoForm] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState('');
+  const [processingPhotos, setProcessingPhotos] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const addPhoto = useAddPropertyMedia(params.id);
 
   if (isLoading) return <p className="p-8 text-sm text-content-muted">Cargando…</p>;
@@ -26,6 +38,32 @@ export default function PropertyDetailPage(): ReactNode {
 
   const images = property.media.filter((m) => m.type === 'IMAGE');
   const main = images[active] ?? images[0];
+  const selectPhotos = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const files = event.target.files;
+    event.target.value = '';
+    if (!files?.length) return;
+    setPhotoError(null);
+    if (images.length + files.length > 8) {
+      setPhotoError('La propiedad puede tener hasta 8 imágenes.');
+      return;
+    }
+    setProcessingPhotos(true);
+    try {
+      const prepared = await compressPropertyImages(files);
+      for (const [index, url] of prepared.entries()) {
+        await addPhoto.mutateAsync({
+          url,
+          type: 'IMAGE',
+          isCover: images.length === 0 && index === 0,
+        });
+      }
+      setShowPhotoForm(false);
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : 'No se pudieron guardar las fotos.');
+    } finally {
+      setProcessingPhotos(false);
+    }
+  };
   const specs = [
     { icon: Bed, label: 'Dormitorios', value: property.bedrooms ?? '—' },
     { icon: Bath, label: 'Baños', value: property.bathrooms ?? '—' },
@@ -54,29 +92,28 @@ export default function PropertyDetailPage(): ReactNode {
       </div>
 
       {showPhotoForm && (
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1 sm:flex-row">
-          <input
-            type="url"
-            value={photoUrl}
-            onChange={(event) => setPhotoUrl(event.target.value)}
-            placeholder="https://.../imagen.jpg"
-            aria-label="URL pública de la foto"
-            className="h-10 flex-1 rounded-md border border-border bg-surface px-3 text-sm text-content focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-          <Button
-            variant="brand"
-            disabled={!photoUrl.trim() || addPhoto.isPending}
-            onClick={() => {
-              void addPhoto
-                .mutateAsync({ url: photoUrl.trim(), type: 'IMAGE', isCover: images.length === 0 })
-                .then(() => {
-                  setPhotoUrl('');
-                  setShowPhotoForm(false);
-                });
-            }}
-          >
-            {addPhoto.isPending ? 'Guardando…' : 'Guardar foto'}
-          </Button>
+        <div className="rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1">
+          <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-surface-sunken px-4 py-6 text-center hover:border-brand">
+            {processingPhotos ? (
+              <LoaderCircle className="h-6 w-6 animate-spin text-brand" />
+            ) : (
+              <ImagePlus className="h-6 w-6 text-brand" />
+            )}
+            <span className="text-sm font-medium text-content">
+              {processingPhotos ? 'Comprimiendo y guardando…' : 'Elegir fotos del equipo'}
+            </span>
+            <span className="text-xs text-content-muted">JPG, PNG o WebP · máximo 8 fotos</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              disabled={processingPhotos}
+              onChange={(event) => void selectPhotos(event)}
+              className="sr-only"
+              aria-label="Seleccionar nuevas fotos"
+            />
+          </label>
+          {photoError && <p className="mt-3 text-sm text-danger">{photoError}</p>}
         </div>
       )}
 

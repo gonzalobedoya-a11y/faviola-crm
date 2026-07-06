@@ -1,10 +1,11 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ImagePlus, LoaderCircle, X } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCreateProperty } from '@/features/properties/api';
 import { ApiError } from '@/lib/api/errors';
+import { compressPropertyImages } from '@/lib/images';
 
 const optionalNumber = z.preprocess(
   (value) => (value === '' || value === undefined ? undefined : Number(value)),
@@ -35,7 +37,6 @@ const schema = z.object({
   city: z.string().optional(),
   address: z.string().optional(),
   description: z.string().optional(),
-  imagesText: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -48,6 +49,8 @@ export default function NewPropertyPage(): ReactNode {
   const router = useRouter();
   const createProperty = useCreateProperty();
   const [error, setError] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [processingImages, setProcessingImages] = useState(false);
   const {
     register,
     handleSubmit,
@@ -59,18 +62,33 @@ export default function NewPropertyPage(): ReactNode {
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
-    const { imagesText, ...rest } = values;
-    const images = (imagesText ?? '')
-      .split(/[\n,]/)
-      .map((line) => line.trim())
-      .filter((line) => /^https?:\/\//.test(line));
     try {
-      const property = await createProperty.mutateAsync({ ...rest, images });
+      const property = await createProperty.mutateAsync({ ...values, images });
       router.push(`/properties/${property.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo crear la propiedad');
     }
   });
+
+  const selectImages = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const files = event.target.files;
+    event.target.value = '';
+    if (!files?.length) return;
+    setError(null);
+    if (images.length + files.length > 8) {
+      setError('Puedes guardar hasta 8 imágenes por propiedad.');
+      return;
+    }
+    setProcessingImages(true);
+    try {
+      const prepared = await compressPropertyImages(files);
+      setImages((current) => [...current, ...prepared]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron procesar las imágenes.');
+    } finally {
+      setProcessingImages(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -204,20 +222,62 @@ export default function NewPropertyPage(): ReactNode {
         </div>
 
         <div>
-          <label htmlFor="imagesText" className={labelClass}>
-            Imágenes (una URL por línea)
+          <span className={labelClass}>Imágenes</span>
+          <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface-sunken px-4 py-8 text-center transition-colors hover:border-brand">
+            {processingImages ? (
+              <LoaderCircle className="h-7 w-7 animate-spin text-brand" />
+            ) : (
+              <ImagePlus className="h-7 w-7 text-brand" />
+            )}
+            <span className="text-sm font-medium text-content">
+              {processingImages ? 'Comprimiendo imágenes…' : 'Seleccionar imágenes del equipo'}
+            </span>
+            <span className="text-xs text-content-muted">
+              JPG, PNG o WebP · máximo 8 imágenes · 12 MB cada una
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              disabled={processingImages}
+              onChange={(event) => void selectImages(event)}
+              className="sr-only"
+              aria-label="Seleccionar imágenes de la propiedad"
+            />
           </label>
-          <textarea
-            id="imagesText"
-            rows={3}
-            placeholder="https://…/foto1.jpg&#10;https://…/foto2.jpg"
-            className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-content focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            {...register('imagesText')}
-          />
-          <p className="mt-1 text-xs text-content-muted">
-            La carga de archivos (MinIO) se habilita en un siguiente incremento; por ahora se
-            registran por URL.
-          </p>
+          {images.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {images.map((src, index) => (
+                <div
+                  key={`${src.slice(-24)}-${index}`}
+                  className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border"
+                >
+                  <Image
+                    src={src}
+                    alt={`Vista previa ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="180px"
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Quitar imagen ${index + 1}`}
+                    onClick={() =>
+                      setImages((current) => current.filter((_, itemIndex) => itemIndex !== index))
+                    }
+                    className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white hover:bg-black/80"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  {index === 0 && (
+                    <span className="absolute bottom-1.5 left-1.5 rounded bg-black/65 px-2 py-0.5 text-[10px] font-medium text-white">
+                      Portada
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {error && (
@@ -228,7 +288,7 @@ export default function NewPropertyPage(): ReactNode {
           <Button asChild variant="secondary">
             <Link href="/properties">Cancelar</Link>
           </Button>
-          <Button type="submit" variant="brand" disabled={isSubmitting}>
+          <Button type="submit" variant="brand" disabled={isSubmitting || processingImages}>
             {isSubmitting ? 'Guardando…' : 'Guardar propiedad'}
           </Button>
         </div>

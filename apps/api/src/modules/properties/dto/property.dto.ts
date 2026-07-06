@@ -1,5 +1,19 @@
 import { z } from 'zod';
 
+const externalUrlSchema = z.string().url('URL inválida');
+const embeddedImageSchema = z
+  .string()
+  .regex(/^data:image\/(?:jpeg|png|webp);base64,/, 'Formato de imagen inválido')
+  .max(1_800_000, 'La imagen es demasiado pesada');
+const imageSourceSchema = z.union([externalUrlSchema, embeddedImageSchema]);
+const mediaSourceSchema = z
+  .string()
+  .max(1_800_000, 'El archivo es demasiado pesado')
+  .refine(
+    (value) => /^https?:\/\//.test(value) || /^data:image\/(?:jpeg|png|webp);base64,/.test(value),
+    'URL o imagen inválida',
+  );
+
 export const createPropertySchema = z.object({
   title: z.string().min(1, 'El título es obligatorio'),
   description: z.string().optional(),
@@ -18,7 +32,7 @@ export const createPropertySchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   ownerClientId: z.string().uuid().optional(),
-  images: z.array(z.string().url()).optional(),
+  images: z.array(imageSourceSchema).max(8, 'Solo se permiten 8 imágenes').optional(),
 });
 
 export const updatePropertySchema = createPropertySchema.partial().omit({ images: true });
@@ -35,7 +49,7 @@ export const listPropertiesSchema = z.object({
 });
 
 export const addMediaSchema = z.object({
-  url: z.string().url('URL inválida'),
+  url: mediaSourceSchema,
   type: z.enum(['IMAGE', 'DOC', 'VIDEO']).default('IMAGE'),
   isCover: z.boolean().default(false),
 });

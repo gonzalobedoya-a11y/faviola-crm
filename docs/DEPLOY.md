@@ -36,8 +36,8 @@ git push -u origin main
    | `CORS_ORIGIN` | La URL de Vercel (paso 2), p. ej. `https://faviola-crm.vercel.app` |
    | `SEED_ADMIN_PASSWORD` | Contraseña inicial segura de la cuenta administradora |
 
-   > `PORT` lo inyecta Railway solo. `MINIO_*` no hace falta (la subida de fotos a
-   > MinIO queda deshabilitada en el demo; las fotos por URL sí funcionan).
+   > `PORT` lo inyecta Railway solo. `MINIO_*` no hace falta: el CRM comprime las
+   > fotos en el navegador y las guarda junto a la propiedad.
 
 5. En **Settings → Networking → Generate Domain** para obtener la URL pública de la API,
    p. ej. `https://faviola-api-production.up.railway.app`. **Cópiala.**
@@ -84,8 +84,7 @@ al recargar (el login por sesión sigue funcionando). Por eso se recomienda el p
 
 ## Notas
 
-- **Fotos:** en el demo hospedado, la carga a MinIO está deshabilitada; registra
-  imágenes por **URL**. Para habilitar subida real en producción se cambia MinIO por
-  un almacenamiento S3/Blob gestionado (siguiente iteración).
+- **Fotos:** se seleccionan directamente desde el equipo. El navegador las reduce a
+  WebP (máximo 1600 px) antes de enviarlas para cuidar el espacio disponible.
 - **Seed:** el usuario admin se crea en el primer arranque. Define siempre
   `SEED_ADMIN_PASSWORD` y luego usa Configuración → Cambiar contraseña.
