@@ -65,8 +65,8 @@ export function Sidebar(): ReactNode {
           <p className="mt-1.5 text-xs text-content-muted">
             Tu asistente inteligente para cerrar más negocios.
           </p>
-          <Button variant="secondary" size="sm" className="mt-3 w-full">
-            Abrir Copilot
+          <Button asChild variant="secondary" size="sm" className="mt-3 w-full">
+            <Link href="/reports">Ver recomendaciones</Link>
           </Button>
         </div>
       </div>

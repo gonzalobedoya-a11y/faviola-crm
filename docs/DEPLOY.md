@@ -24,7 +24,7 @@ git push -u origin main
 
 1. Entra a **railway.app** → **New Project** → **Deploy from GitHub repo** → elige `faviola-crm`.
 2. Railway detecta `railway.json` y construye con `infra/docker/api.prod.Dockerfile`.
-3. En el proyecto: **+ New → Database → PostgreSQL** (crea la BD gratis).
+3. En el proyecto: **+ New → Database → PostgreSQL**.
 4. Ve al **servicio de la API → Variables** y agrega:
 
    | Variable | Valor |
@@ -34,6 +34,7 @@ git push -u origin main
    | `JWT_ACCESS_SECRET` | (una cadena larga aleatoria) |
    | `JWT_REFRESH_SECRET` | (otra cadena larga aleatoria) |
    | `CORS_ORIGIN` | La URL de Vercel (paso 2), p. ej. `https://faviola-crm.vercel.app` |
+   | `SEED_ADMIN_PASSWORD` | Contraseña inicial segura de la cuenta administradora |
 
    > `PORT` lo inyecta Railway solo. `MINIO_*` no hace falta (la subida de fotos a
    > MinIO queda deshabilitada en el demo; las fotos por URL sí funcionan).
@@ -86,5 +87,5 @@ al recargar (el login por sesión sigue funcionando). Por eso se recomienda el p
 - **Fotos:** en el demo hospedado, la carga a MinIO está deshabilitada; registra
   imágenes por **URL**. Para habilitar subida real en producción se cambia MinIO por
   un almacenamiento S3/Blob gestionado (siguiente iteración).
-- **Seed:** el usuario admin se crea en el primer arranque. Cambia la contraseña con
-  `SEED_ADMIN_PASSWORD` en Railway si quieres.
+- **Seed:** el usuario admin se crea en el primer arranque. Define siempre
+  `SEED_ADMIN_PASSWORD` y luego usa Configuración → Cambiar contraseña.

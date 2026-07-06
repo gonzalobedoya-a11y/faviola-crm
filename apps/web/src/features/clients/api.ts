@@ -7,6 +7,7 @@ import type {
   Client,
   ClientDetail,
   ClientFilters,
+  ClientRequirement,
   CreateClientInput,
   Paginated,
 } from './types';
@@ -32,6 +33,7 @@ export function useClients(filters: ClientFilters) {
   return useQuery({
     queryKey: clientKeys.list(filters),
     queryFn: () => httpClient.get<Paginated<Client>>(`/clients${buildQuery(filters)}`),
+    enabled: filters.q === undefined || filters.q.trim().length >= 2,
   });
 }
 
@@ -55,6 +57,15 @@ export function useAddActivity(clientId: string) {
   return useMutation({
     mutationFn: (input: { type: string; message: string }) =>
       httpClient.post<Activity>(`/clients/${clientId}/activities`, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: clientKeys.detail(clientId) }),
+  });
+}
+
+export function useUpsertRequirement(clientId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ClientRequirement) =>
+      httpClient.put<ClientRequirement>(`/clients/${clientId}/requirement`, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: clientKeys.detail(clientId) }),
   });
 }

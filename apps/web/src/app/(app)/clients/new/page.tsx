@@ -22,6 +22,14 @@ const schema = z.object({
   source: z.string().optional(),
   temperature: z.enum(['HOT', 'WARM', 'COLD']),
   notes: z.string().optional(),
+  operation: z.enum(['SALE', 'RENT']),
+  propertyType: z.string().optional(),
+  budgetMin: z.string().optional(),
+  budgetMax: z.string().optional(),
+  bedroomsMin: z.string().optional(),
+  bathroomsMin: z.string().optional(),
+  areaMin: z.string().optional(),
+  zones: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -37,16 +45,51 @@ export default function NewClientPage(): ReactNode {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { type: 'BUYER', temperature: 'WARM' },
+    defaultValues: { type: 'BUYER', temperature: 'WARM', operation: 'SALE' },
   });
+  const clientType = watch('type');
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
     try {
-      const client = await createClient.mutateAsync(values);
+      const {
+        operation,
+        propertyType,
+        budgetMin,
+        budgetMax,
+        bedroomsMin,
+        bathroomsMin,
+        areaMin,
+        zones,
+        ...clientValues
+      } = values;
+      const numberOrUndefined = (value?: string): number | undefined =>
+        value?.trim() ? Number(value) : undefined;
+      const client = await createClient.mutateAsync({
+        ...clientValues,
+        requirement:
+          values.type === 'SELLER'
+            ? undefined
+            : {
+                operation,
+                propertyType: propertyType || undefined,
+                budgetMin: numberOrUndefined(budgetMin),
+                budgetMax: numberOrUndefined(budgetMax),
+                currency: 'PEN',
+                bedroomsMin: numberOrUndefined(bedroomsMin),
+                bathroomsMin: numberOrUndefined(bathroomsMin),
+                areaMin: numberOrUndefined(areaMin),
+                zones:
+                  zones
+                    ?.split(',')
+                    .map((zone) => zone.trim())
+                    .filter(Boolean) ?? [],
+              },
+      });
       router.push(`/clients/${client.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo crear el cliente');
@@ -134,6 +177,69 @@ export default function NewClientPage(): ReactNode {
             </label>
             <Input id="source" placeholder="Referido, Facebook, portal…" {...register('source')} />
           </div>
+          {clientType !== 'SELLER' && (
+            <fieldset className="grid gap-5 rounded-lg border border-border bg-surface-sunken p-4 sm:col-span-2 sm:grid-cols-2">
+              <legend className="px-2 text-sm font-semibold text-content">
+                Qué propiedad busca
+              </legend>
+              <div>
+                <label htmlFor="operation" className={labelClass}>
+                  Operación
+                </label>
+                <select id="operation" className={fieldClass} {...register('operation')}>
+                  <option value="SALE">Compra</option>
+                  <option value="RENT">Alquiler</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="propertyType" className={labelClass}>
+                  Tipo de propiedad
+                </label>
+                <Input
+                  id="propertyType"
+                  placeholder="Casa, departamento…"
+                  {...register('propertyType')}
+                />
+              </div>
+              <div>
+                <label htmlFor="budgetMin" className={labelClass}>
+                  Presupuesto mínimo (S/)
+                </label>
+                <Input id="budgetMin" type="number" min="0" {...register('budgetMin')} />
+              </div>
+              <div>
+                <label htmlFor="budgetMax" className={labelClass}>
+                  Presupuesto máximo (S/)
+                </label>
+                <Input id="budgetMax" type="number" min="0" {...register('budgetMax')} />
+              </div>
+              <div>
+                <label htmlFor="bedroomsMin" className={labelClass}>
+                  Dormitorios mínimos
+                </label>
+                <Input id="bedroomsMin" type="number" min="0" {...register('bedroomsMin')} />
+              </div>
+              <div>
+                <label htmlFor="bathroomsMin" className={labelClass}>
+                  Baños mínimos
+                </label>
+                <Input id="bathroomsMin" type="number" min="0" {...register('bathroomsMin')} />
+              </div>
+              <div>
+                <label htmlFor="areaMin" className={labelClass}>
+                  Área mínima (m²)
+                </label>
+                <Input id="areaMin" type="number" min="0" {...register('areaMin')} />
+              </div>
+              <div>
+                <label htmlFor="zones" className={labelClass}>
+                  Zonas
+                </label>
+                <Input id="zones" placeholder="Cayma, Yanahuara…" {...register('zones')} />
+                <p className="mt-1 text-xs text-content-muted">Separa varias zonas con comas.</p>
+              </div>
+            </fieldset>
+          )}
           <div className="sm:col-span-2">
             <label htmlFor="notes" className={labelClass}>
               Notas

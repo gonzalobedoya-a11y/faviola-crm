@@ -35,5 +35,12 @@ export function validateEnv(config: Record<string, unknown>): Env {
       .join('\n');
     throw new Error(`Variables de entorno inválidas:\n${detail}`);
   }
+  if (
+    parsed.data.NODE_ENV === 'production' &&
+    (parsed.data.JWT_ACCESS_SECRET === 'change-me-access-secret' ||
+      parsed.data.JWT_REFRESH_SECRET === 'change-me-refresh-secret')
+  ) {
+    throw new Error('JWT_ACCESS_SECRET y JWT_REFRESH_SECRET deben configurarse en producción');
+  }
   return parsed.data;
 }

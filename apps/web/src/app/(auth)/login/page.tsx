@@ -26,6 +26,7 @@ export default function LoginPage(): ReactNode {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
   const {
     register,
     handleSubmit,
@@ -169,18 +170,21 @@ export default function LoginPage(): ReactNode {
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-[#5c5647]">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-4 w-4 rounded border-[#d8cebb] accent-[#a9884e]"
-                  />
-                  Recordarme
-                </label>
-                <button type="button" className="text-sm text-[#a9884e] hover:underline">
+                <span className="text-xs text-[#8a8069]">Sesión segura durante 7 días</span>
+                <button
+                  type="button"
+                  onClick={() => setShowRecovery((value) => !value)}
+                  className="text-sm text-[#a9884e] hover:underline"
+                >
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
+
+              {showRecovery && (
+                <p className="rounded-lg border border-[#e2d8c5] bg-white/60 px-3 py-2 text-sm text-[#5c5647]">
+                  Solicita al administrador de la cuenta que restablezca tu acceso.
+                </p>
+              )}
 
               {error && (
                 <p className="rounded-lg border border-[#a9432f] bg-[#a9432f]/5 px-3 py-2 text-sm text-[#a9432f]">
@@ -202,7 +206,7 @@ export default function LoginPage(): ReactNode {
               <ShieldCheck className="h-4 w-4 text-[#a9884e]" />
               <div className="text-center leading-tight">
                 <p className="text-xs font-medium text-[#5c5647]">Plataforma privada y segura</p>
-                <p className="text-[10px]">Conexión protegida SSL 256-bit</p>
+                <p className="text-[10px]">Conexión HTTPS protegida</p>
               </div>
             </div>
           </div>

@@ -30,6 +30,7 @@ export function useProperties(filters: PropertyFilters) {
   return useQuery({
     queryKey: propertyKeys.list(filters),
     queryFn: () => httpClient.get<Paginated<Property>>(`/properties${buildQuery(filters)}`),
+    enabled: filters.q === undefined || filters.q.trim().length >= 2,
   });
 }
 
@@ -74,5 +75,49 @@ export function useUploadPropertyPhoto(propertyId: string) {
       return presign.fileUrl;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: propertyKeys.detail(propertyId) }),
+  });
+}
+
+/** Sube un documento y lo asocia a una propiedad. */
+export function useUploadPropertyDocument(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const contentType = file.type || 'application/octet-stream';
+      const presign = await httpClient.post<PresignedUpload>(
+        `/properties/${propertyId}/media/upload-url`,
+        { filename: file.name, contentType },
+      );
+      const put = await fetch(presign.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
+        body: file,
+      });
+      if (!put.ok) throw new Error('No se pudo subir el documento');
+      await httpClient.post(`/properties/${propertyId}/media`, {
+        url: presign.fileUrl,
+        type: 'DOC',
+      });
+      return presign.fileUrl;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: propertyKeys.all }),
+  });
+}
+
+export function useDeletePropertyMedia() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ propertyId, mediaId }: { propertyId: string; mediaId: string }) =>
+      httpClient.delete<void>(`/properties/${propertyId}/media/${mediaId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: propertyKeys.all }),
+  });
+}
+
+export function useAddPropertyMedia(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { url: string; type: 'IMAGE' | 'DOC' | 'VIDEO'; isCover?: boolean }) =>
+      httpClient.post(`/properties/${propertyId}/media`, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: propertyKeys.all }),
   });
 }

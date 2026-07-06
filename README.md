@@ -3,7 +3,17 @@
 Monorepo del CRM. Construido siguiendo las fases aprobadas:
 **Fase 0 (Discovery)** · **Fase 1 (Branding + Design System)** · **Fase 2 (Blueprint Técnico)**.
 
-> Estado actual: **Sprint 0A — Infraestructura**. Aún no hay funcionalidad de negocio.
+> Estado actual: **release funcional** desplegado en Railway + Vercel.
+
+## Funcionalidades
+
+- Autenticación segura, sesiones rotativas y cambio de contraseña.
+- Clientes compradores/vendedores, requisitos de búsqueda y actividad.
+- Inventario de propiedades, galería por URL y documentos asociados.
+- Matching automático comprador ↔ propiedad.
+- Pipeline comercial, agenda y seguimiento de visitas.
+- Dashboard, notificaciones, búsqueda global, reportes y exportación CSV.
+- Centro de contacto por WhatsApp/correo, perfil, temas claro/oscuro y navegación móvil.
 
 ---
 

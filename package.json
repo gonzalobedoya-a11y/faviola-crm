@@ -36,13 +36,5 @@
     "*.{ts,tsx,mjs,js,json,md,yml,yaml,css}": [
       "prettier --write"
     ]
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@nestjs/core",
-      "esbuild",
-      "prisma",
-      "@prisma/engines"
-    ]
   }
 }

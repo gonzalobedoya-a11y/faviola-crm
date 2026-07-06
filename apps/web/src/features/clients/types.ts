@@ -65,4 +65,5 @@ export interface CreateClientInput {
   source?: string;
   temperature: Temperature;
   notes?: string;
+  requirement?: ClientRequirement;
 }

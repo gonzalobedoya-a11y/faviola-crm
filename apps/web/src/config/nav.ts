@@ -31,6 +31,6 @@ export const navItems: NavItem[] = [
   { label: 'Visitas', href: '/visits', icon: MapPin },
   { label: 'Documentos', href: '/documents', icon: FileText },
   { label: 'Reportes', href: '/reports', icon: BarChart3 },
-  { label: 'Mensajes', href: '/messages', icon: MessageSquare, badge: 5 },
+  { label: 'Mensajes', href: '/messages', icon: MessageSquare },
   { label: 'Configuración', href: '/settings', icon: Settings },
 ];

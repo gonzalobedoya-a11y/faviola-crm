@@ -1,4 +1,4 @@
-import { verify } from '@node-rs/argon2';
+import { hash, verify } from '@node-rs/argon2';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { PrismaService } from '../../database/prisma.service';
@@ -126,6 +126,25 @@ export class AuthService {
       ...this.toPublicUser(user),
       permissions: user.role.permissions.map((rp) => rp.permission.code),
     };
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !(await verify(user.passwordHash, currentPassword))) {
+      throw new UnauthorizedException('La contraseña actual no es correcta');
+    }
+    const passwordHash = await hash(newPassword);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      this.prisma.session.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
   }
 
   private async issueTokens(payload: JwtPayload, ctx: RequestContext): Promise<IssuedTokens> {

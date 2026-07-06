@@ -10,6 +10,7 @@ import type { Env } from '../../config/env.validation';
 
 import type { JwtPayload, RequestContext } from './auth.types';
 import { AuthService } from './auth.service';
+import { type ChangePasswordDto, changePasswordSchema } from './dto/change-password.dto';
 import { type LoginDto, loginSchema } from './dto/login.dto';
 
 const REFRESH_COOKIE = 'refresh_token';
@@ -65,6 +66,16 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: JwtPayload): Promise<unknown> {
     return this.auth.me(user.sub);
+  }
+
+  @ApiBearerAuth()
+  @Post('change-password')
+  async changePassword(
+    @CurrentUser() user: JwtPayload,
+    @Body(new ZodValidationPipe(changePasswordSchema)) dto: ChangePasswordDto,
+  ): Promise<{ success: true }> {
+    await this.auth.changePassword(user.sub, dto.currentPassword, dto.newPassword);
+    return { success: true };
   }
 
   private context(req: Request): RequestContext {

@@ -4,11 +4,11 @@ import { ArrowLeft, Bath, Bed, Building2, ImagePlus, Maximize, MapPin, Ruler } f
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useProperty, useUploadPropertyPhoto } from '@/features/properties/api';
+import { useAddPropertyMedia, useProperty } from '@/features/properties/api';
 import { operationLabel, statusClass, statusLabel } from '@/features/properties/labels';
 import { formatMoney } from '@/lib/format';
 
@@ -16,16 +16,9 @@ export default function PropertyDetailPage(): ReactNode {
   const params = useParams<{ id: string }>();
   const { data: property, isLoading, isError } = useProperty(params.id);
   const [active, setActive] = useState(0);
-  const uploadPhoto = useUploadPropertyPhoto(params.id);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFiles = async (files: FileList | null): Promise<void> => {
-    if (!files) return;
-    for (const file of Array.from(files)) {
-      await uploadPhoto.mutateAsync(file).catch(() => undefined);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+  const [showPhotoForm, setShowPhotoForm] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState('');
+  const addPhoto = useAddPropertyMedia(params.id);
 
   if (isLoading) return <p className="p-8 text-sm text-content-muted">Cargando…</p>;
   if (isError || !property)
@@ -54,24 +47,38 @@ export default function PropertyDetailPage(): ReactNode {
           <ArrowLeft className="h-4 w-4" />
           Propiedades
         </Link>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          hidden
-          onChange={(event) => void handleFiles(event.target.files)}
-        />
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploadPhoto.isPending}
-        >
+        <Button variant="secondary" size="sm" onClick={() => setShowPhotoForm((value) => !value)}>
           <ImagePlus className="h-4 w-4" />
-          {uploadPhoto.isPending ? 'Subiendo…' : 'Agregar fotos'}
+          Agregar foto
         </Button>
       </div>
+
+      {showPhotoForm && (
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1 sm:flex-row">
+          <input
+            type="url"
+            value={photoUrl}
+            onChange={(event) => setPhotoUrl(event.target.value)}
+            placeholder="https://.../imagen.jpg"
+            aria-label="URL pública de la foto"
+            className="h-10 flex-1 rounded-md border border-border bg-surface px-3 text-sm text-content focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <Button
+            variant="brand"
+            disabled={!photoUrl.trim() || addPhoto.isPending}
+            onClick={() => {
+              void addPhoto
+                .mutateAsync({ url: photoUrl.trim(), type: 'IMAGE', isCover: images.length === 0 })
+                .then(() => {
+                  setPhotoUrl('');
+                  setShowPhotoForm(false);
+                });
+            }}
+          >
+            {addPhoto.isPending ? 'Guardando…' : 'Guardar foto'}
+          </Button>
+        </div>
+      )}
 
       {/* Galería */}
       <div className="grid gap-3 lg:grid-cols-4">
@@ -156,14 +163,23 @@ export default function PropertyDetailPage(): ReactNode {
               {property.district ?? '—'}
               {property.city ? `, ${property.city}` : ''}
             </p>
-            {property.lat && property.lng ? (
-              <p className="mt-2 text-xs text-content-muted">
-                {property.lat.toFixed(5)}, {property.lng.toFixed(5)}
-              </p>
+            {(property.lat && property.lng) || property.address ? (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  property.lat && property.lng
+                    ? `${property.lat},${property.lng}`
+                    : [property.address, property.district, property.city]
+                        .filter(Boolean)
+                        .join(', '),
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-xs text-brand-deep hover:underline"
+              >
+                Ver en Google Maps
+              </a>
             ) : (
-              <p className="mt-2 text-xs text-content-muted">
-                Sin coordenadas. El mapa llega pronto.
-              </p>
+              <p className="mt-2 text-xs text-content-muted">Sin dirección ni coordenadas.</p>
             )}
             {property.owner && (
               <p className="mt-4 border-t border-border pt-3 text-xs text-content-muted">

@@ -120,28 +120,33 @@ async function main(): Promise<void> {
 
   // 4) Usuaria administradora
   const email = process.env.SEED_ADMIN_EMAIL ?? 'faviola@faviolavelarde.com';
-  const password = process.env.SEED_ADMIN_PASSWORD ?? 'Faviola2026!';
-  const passwordHash = await hash(password);
-
-  await prisma.user.upsert({
+  const existingAdmin = await prisma.user.findUnique({
     where: { tenantId_email: { tenantId: tenant.id, email } },
-    update: {},
-    create: {
-      tenantId: tenant.id,
-      email,
-      passwordHash,
-      firstName: 'Faviola',
-      lastName: 'Velarde',
-      roleId: roleIds.ADMIN,
-      status: 'ACTIVE',
-    },
   });
+  if (!existingAdmin) {
+    const configuredPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (process.env.NODE_ENV === 'production' && !configuredPassword) {
+      throw new Error('SEED_ADMIN_PASSWORD es obligatoria para crear el admin en producción');
+    }
+    const passwordHash = await hash(configuredPassword ?? 'Faviola2026!');
+    await prisma.user.create({
+      data: {
+        tenantId: tenant.id,
+        email,
+        passwordHash,
+        firstName: 'Faviola',
+        lastName: 'Velarde',
+        roleId: roleIds.ADMIN,
+        status: 'ACTIVE',
+      },
+    });
+  }
 
   console.log('Seed completado.');
   console.log(`  Tenant:   ${tenant.name} (${tenant.slug})`);
   console.log(`  Roles:    ${Object.keys(ROLE_PERMISSIONS).join(', ')}`);
   console.log(`  Permisos: ${ALL.length}`);
-  console.log(`  Admin:    ${email} / ${password}`);
+  console.log(`  Admin:    ${email}`);
 }
 
 main()

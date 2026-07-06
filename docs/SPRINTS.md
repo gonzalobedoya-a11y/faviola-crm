@@ -11,9 +11,9 @@ Referencia oficial: **Blueprint Técnico (Fase 2)**. No se avanza de sprint sin 
 | 3      | Propiedades                               | Completado    |
 | 4      | Matching                                  | Completado    |
 | 5      | Pipeline · Visitas                        | Completado    |
-| 6      | Dashboard · Notificaciones · IA (base)    | Dashboard ✔ · Notif/IA pendiente |
-| 7      | Documentos · Reportes                     | Pendiente     |
-| 8      | Settings · Marca · Hardening · Release    | Pendiente     |
+| 6      | Dashboard · Notificaciones · recomendaciones | Completado |
+| 7      | Documentos · Reportes                     | Completado    |
+| 8      | Settings · Marca · Hardening · Release    | Completado    |
 
 ## Sprint 0A — Infraestructura
 
