@@ -1,0 +1,450 @@
+// ─────────────────────────────────────────────────────────────
+//  Prisma Schema — Faviola Velarde CRM
+//  Sprint 1: Tenancy · Auth · RBAC (Blueprint §3).
+//  Multi-tenant por columna `tenantId` (aislamiento en capa de app).
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum TenantPlan {
+  STARTER
+  PRO
+  TEAM
+  ENTERPRISE
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
+/// Organización / cuenta. Raíz del aislamiento multi-tenant.
+model Tenant {
+  id        String       @id @default(uuid())
+  name      String
+  slug      String       @unique
+  plan      TenantPlan   @default(STARTER)
+  status    TenantStatus @default(ACTIVE)
+  settings  Json         @default("{}")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
+
+  users      User[]
+  roles      Role[]
+  clients    Client[]
+  properties Property[]
+  deals      Deal[]
+  visits     Visit[]
+
+  @@map("tenants")
+}
+
+/// Usuario del sistema (asesor, asistente, admin de la cuenta).
+model User {
+  id           String     @id @default(uuid())
+  tenantId     String
+  email        String
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  avatarUrl    String?
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  roleId       String
+  role         Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  sessions        Session[]
+  ownedClients    Client[]
+  agentProperties Property[]
+  deals           Deal[]
+  visits          Visit[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("users")
+}
+
+/// Rol dentro de un tenant (ADMIN, ASESOR, ASISTENTE, ...).
+model Role {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users       User[]
+  permissions RolePermission[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+/// Catálogo global de permisos (recurso.acción). No lleva tenantId.
+model Permission {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  description String
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+/// Relación N:M Role ↔ Permission.
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+/// Sesión de refresh token (rotación + detección de reuso).
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  userAgent        String?
+  ip               String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Sprint 2 — Clientes (compradores / vendedores) + timeline
+// ─────────────────────────────────────────────────────────────
+
+enum ClientType {
+  BUYER
+  SELLER
+  BOTH
+}
+
+enum ClientTemperature {
+  HOT
+  WARM
+  COLD
+}
+
+enum Operation {
+  SALE
+  RENT
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  MESSAGE
+  VISIT
+  EMAIL
+  STATUS_CHANGE
+  CREATED
+}
+
+enum ActorType {
+  USER
+  AI
+  SYSTEM
+}
+
+/// Cliente: comprador, vendedor o ambos.
+model Client {
+  id            String            @id @default(uuid())
+  tenantId      String
+  type          ClientType        @default(BUYER)
+  firstName     String
+  lastName      String
+  phone         String?
+  email         String?
+  source        String?
+  temperature   ClientTemperature @default(WARM)
+  score         Int               @default(0)
+  notes         String?
+  ownerId       String
+  lastContactAt DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner       User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  requirement ClientRequirement?
+  activities  ActivityLog[]
+  properties  Property[]
+  matches     Match[]
+  deals       Deal[]
+  visits      Visit[]
+
+  @@index([tenantId, type])
+  @@index([tenantId, temperature])
+  @@index([tenantId, ownerId])
+  @@index([tenantId, lastContactAt])
+  @@map("clients")
+}
+
+/// Requisitos de búsqueda del comprador (1:1 con Client).
+model ClientRequirement {
+  id           String    @id @default(uuid())
+  clientId     String    @unique
+  operation    Operation @default(SALE)
+  propertyType String?
+  budgetMin    Int?
+  budgetMax    Int?
+  currency     String    @default("PEN")
+  bedroomsMin  Int?
+  bathroomsMin Int?
+  areaMin      Int?
+  zones        String[]
+  notes        String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("client_requirements")
+}
+
+/// Registro de actividad (timeline). Fuente única del historial del cliente.
+model ActivityLog {
+  id        String       @id @default(uuid())
+  tenantId  String
+  clientId  String
+  type      ActivityType
+  message   String
+  meta      Json         @default("{}")
+  actorType ActorType    @default(USER)
+  actorId   String?
+  createdAt DateTime     @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, clientId, createdAt])
+  @@map("activity_logs")
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Sprint 3 — Propiedades (inventario) + media
+// ─────────────────────────────────────────────────────────────
+
+enum PropertyStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  RENTED
+  OFF
+}
+
+enum MediaType {
+  IMAGE
+  DOC
+  VIDEO
+}
+
+/// Propiedad del inventario (venta / alquiler).
+model Property {
+  id            String         @id @default(uuid())
+  tenantId      String
+  code          String
+  title         String
+  description   String?
+  operation     Operation      @default(SALE)
+  propertyType  String?
+  status        PropertyStatus @default(AVAILABLE)
+  price         Int
+  currency      String         @default("PEN")
+  bedrooms      Int?
+  bathrooms     Int?
+  area          Int?
+  builtArea     Int?
+  address       String?
+  district      String?
+  city          String?
+  lat           Float?
+  lng           Float?
+  features      Json           @default("{}")
+  ownerClientId String?
+  agentId       String
+  publishedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  agent   User            @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  owner   Client?         @relation(fields: [ownerClientId], references: [id], onDelete: SetNull)
+  media   PropertyMedia[]
+  matches Match[]
+  deals   Deal[]
+  visits  Visit[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, status])
+  @@index([tenantId, operation, price])
+  @@index([tenantId, district])
+  @@map("properties")
+}
+
+/// Imagen / documento asociado a una propiedad.
+model PropertyMedia {
+  id         String    @id @default(uuid())
+  propertyId String
+  type       MediaType @default(IMAGE)
+  url        String
+  order      Int       @default(0)
+  isCover    Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_media")
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Sprint 4 — Coincidencias (matching comprador ↔ propiedad)
+// ─────────────────────────────────────────────────────────────
+
+enum MatchStatus {
+  NEW
+  SENT
+  VIEWED
+  DISCARDED
+  CONVERTED
+}
+
+/// Coincidencia calculada entre un comprador y una propiedad.
+model Match {
+  id         String      @id @default(uuid())
+  tenantId   String
+  clientId   String
+  propertyId String
+  score      Int
+  reasons    Json        @default("[]")
+  status     MatchStatus @default(NEW)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, propertyId])
+  @@index([tenantId, score])
+  @@index([tenantId, status])
+  @@map("matches")
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Sprint 5 — Pipeline (negociaciones)
+// ─────────────────────────────────────────────────────────────
+
+enum DealStage {
+  NEW
+  CONTACTED
+  VISIT
+  OFFER
+  NEGOTIATION
+  CLOSING
+  WON
+  LOST
+}
+
+/// Negociación / oportunidad de venta o alquiler.
+model Deal {
+  id                String    @id @default(uuid())
+  tenantId          String
+  clientId          String
+  propertyId        String?
+  sellerClientId    String?
+  agentId           String
+  stage             DealStage @default(NEW)
+  value             Int?
+  currency          String    @default("PEN")
+  commissionPct     Float?
+  commissionAmount  Int?
+  probability       Int       @default(0)
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  lostReason        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  agent    User      @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, stage])
+  @@index([tenantId, agentId])
+  @@map("deals")
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Sprint 5 (parte 2) — Visitas
+// ─────────────────────────────────────────────────────────────
+
+enum VisitStatus {
+  SCHEDULED
+  DONE
+  CANCELLED
+  NOSHOW
+}
+
+/// Visita agendada a una propiedad con un cliente.
+model Visit {
+  id          String      @id @default(uuid())
+  tenantId    String
+  clientId    String
+  propertyId  String?
+  agentId     String
+  scheduledAt DateTime
+  durationMin Int         @default(60)
+  status      VisitStatus @default(SCHEDULED)
+  feedback    String?
+  outcome     String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  agent    User      @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, scheduledAt])
+  @@index([tenantId, status])
+  @@map("visits")
+}

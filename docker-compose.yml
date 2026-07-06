@@ -1,0 +1,140 @@
+name: faviola-crm
+
+# ──────────────────────────────────────────────────────────────
+#  Entorno de desarrollo completo.
+#  `docker compose up` levanta: PostgreSQL, Redis, MinIO, MailHog,
+#  el backend (NestJS) y el frontend (Next.js).
+#  Para levantar SOLO la infraestructura de datos:
+#    docker compose up -d postgres redis minio mailhog
+# ──────────────────────────────────────────────────────────────
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: faviola-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-faviola}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-faviola}
+      POSTGRES_DB: ${POSTGRES_DB:-faviola_crm}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-faviola} -d ${POSTGRES_DB:-faviola_crm}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: faviola-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: faviola-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - '${MINIO_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: faviola-mailhog
+    restart: unless-stopped
+    ports:
+      - '${MAILHOG_SMTP_PORT:-1025}:1025'
+      - '${MAILHOG_UI_PORT:-8025}:8025'
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    container_name: faviola-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      API_PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-faviola}:${POSTGRES_PASSWORD:-faviola}@postgres:5432/${POSTGRES_DB:-faviola_crm}?schema=public
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_URL: http://localhost:${MINIO_PORT:-9000}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET: faviola
+    ports:
+      - '${API_PORT:-4000}:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - api_node_modules:/app/node_modules
+      # Volúmenes anónimos: preservan los node_modules Linux de la imagen y
+      # evitan que el bind-mount del host (Windows) los sobrescriba.
+      - /app/apps/api/node_modules
+      - /app/packages/config/node_modules
+      - /app/packages/shared/node_modules
+      # Artefactos de build aislados del host (evita dist stale de Windows).
+      - /app/apps/api/dist
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    container_name: faviola-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-4000}
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - web_node_modules:/app/node_modules
+      # Volúmenes anónimos: preservan los node_modules Linux de la imagen y
+      # evitan que el bind-mount del host (Windows) los sobrescriba.
+      - /app/apps/web/node_modules
+      - /app/packages/config/node_modules
+      - /app/packages/shared/node_modules
+      # Artefactos de build aislados del host.
+      - /app/apps/web/.next
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  api_node_modules:
+  web_node_modules:

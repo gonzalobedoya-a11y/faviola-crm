@@ -1,0 +1,23 @@
+{
+  "name": "@faviola/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Contratos y utilidades compartidas entre web y api",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf .turbo"
+  },
+  "devDependencies": {
+    "@faviola/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.3"
+  }
+}
