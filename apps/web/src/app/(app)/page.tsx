@@ -125,21 +125,21 @@ export default function DashboardPage(): ReactNode {
   return (
     <div className="space-y-6">
       {/* Hero */}
-      <section
-        className="relative overflow-hidden rounded-2xl border border-[#e7e0d2]"
-        style={{ background: 'linear-gradient(90deg,#f5f0e7 0%,#f1e7d4 100%)' }}
-      >
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] lg:block">
+      <section className="relative overflow-hidden rounded-2xl border border-[#e7e0d2] bg-[#faf7f0]">
+        <div className="pointer-events-none absolute inset-0 hidden md:block">
           <Image
-            src="/brand/faviola-perfil.png"
-            alt="Faviola Velarde"
+            src="/brand/inicio-fv.png"
+            alt=""
             fill
-            className="object-cover object-[58%_20%]"
+            className="object-cover object-[70%_center]"
             priority
           />
           <div
             className="absolute inset-0"
-            style={{ background: 'linear-gradient(90deg,#f5f0e7 0%, rgba(245,240,231,0) 26%)' }}
+            style={{
+              background:
+                'linear-gradient(90deg,#faf7f0 0%,#faf7f0 28%, rgba(250,247,240,0.85) 44%, rgba(250,247,240,0) 66%)',
+            }}
           />
         </div>
 
