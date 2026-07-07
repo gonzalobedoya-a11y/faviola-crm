@@ -82,7 +82,9 @@ export function useUploadPropertyPhoto(propertyId: string) {
 export function useUploadPropertyDocument(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (input: File | { file: File; label?: string }) => {
+      const file = input instanceof File ? input : input.file;
+      const label = input instanceof File ? undefined : input.label;
       const contentType = file.type || 'application/octet-stream';
       const presign = await httpClient.post<PresignedUpload>(
         `/properties/${propertyId}/media/upload-url`,
@@ -94,11 +96,14 @@ export function useUploadPropertyDocument(propertyId: string) {
         body: file,
       });
       if (!put.ok) throw new Error('No se pudo subir el documento');
+      const fileUrl = label
+        ? `${presign.fileUrl}#tipo=${encodeURIComponent(label)}`
+        : presign.fileUrl;
       await httpClient.post(`/properties/${propertyId}/media`, {
-        url: presign.fileUrl,
+        url: fileUrl,
         type: 'DOC',
       });
-      return presign.fileUrl;
+      return fileUrl;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: propertyKeys.all }),
   });

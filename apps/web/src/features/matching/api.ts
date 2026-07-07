@@ -69,6 +69,14 @@ export function useRunMatching() {
   });
 }
 
+export function useClearMatches() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => httpClient.delete<{ deleted: number }>('/matches'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: matchKeys.all }),
+  });
+}
+
 export function useUpdateMatchStatus() {
   const queryClient = useQueryClient();
   return useMutation({

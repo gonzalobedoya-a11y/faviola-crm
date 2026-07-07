@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -46,6 +46,12 @@ export class MatchingController {
       matches = await this.matching.recomputeAll(user.tenantId);
     }
     return { matches };
+  }
+
+  @Delete()
+  @RequirePermissions('matching.run')
+  async clear(@CurrentUser() user: JwtPayload): Promise<{ deleted: number }> {
+    return this.matching.clear(user.tenantId);
   }
 
   @Patch(':id')

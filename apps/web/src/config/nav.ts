@@ -12,7 +12,6 @@ import {
   Sparkles,
   UserRoundCheck,
   Users,
-  WandSparkles,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -30,7 +29,6 @@ export const navItems: NavItem[] = [
   { label: 'Propietarios', href: '/owners', icon: UserRoundCheck },
   { label: 'Propiedades', href: '/properties', icon: Building2 },
   { label: 'Coincidencias', href: '/matching', icon: Sparkles },
-  { label: 'FV Copilot', href: '/copilot', icon: WandSparkles },
   { label: 'Academia FV', href: '/academy', icon: GraduationCap },
   { label: 'Pipeline', href: '/pipeline', icon: KanbanSquare },
   { label: 'Agenda', href: '/agenda', icon: CalendarDays },

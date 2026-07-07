@@ -17,6 +17,7 @@ import {
   useAddPropertyMedia,
   useDeletePropertyMedia,
   useProperties,
+  useUploadPropertyDocument,
 } from '@/features/properties/api';
 import type { Property, PropertyMedia } from '@/features/properties/types';
 
@@ -25,7 +26,7 @@ const requiredDocs = [
   'Partida registral',
   'HR / PU',
   'Contrato',
-  'Ficha técnica',
+  'Ficha tecnica',
 ];
 
 interface PropertyDossier {
@@ -33,25 +34,43 @@ interface PropertyDossier {
   docs: PropertyMedia[];
 }
 
-function fileName(url: string): string {
+function docName(url: string): string {
   try {
-    return decodeURIComponent(new URL(url).pathname.split('/').pop() ?? 'Documento');
+    const parsed = new URL(url);
+    const label = new URLSearchParams(parsed.hash.replace(/^#/, '')).get('tipo');
+    return label ?? decodeURIComponent(parsed.pathname.split('/').pop() ?? 'Documento');
   } catch {
     return 'Documento';
   }
 }
 
+function cleanUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 function completion(docs: PropertyMedia[]): number {
-  return Math.min(100, Math.round((docs.length / requiredDocs.length) * 100));
+  const labels = docs.map((doc) => docName(doc.url).toLowerCase());
+  const present = requiredDocs.filter((doc) =>
+    labels.some((label) => label.includes(doc.toLowerCase().slice(0, 5))),
+  ).length;
+  return Math.min(100, Math.round((present / requiredDocs.length) * 100));
 }
 
 export default function DocumentsPage(): ReactNode {
   const { data, isLoading, isError } = useProperties({});
   const [propertyId, setPropertyId] = useState('');
   const [documentUrl, setDocumentUrl] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docLabel, setDocLabel] = useState('DNI propietario');
   const [message, setMessage] = useState<string | null>(null);
   const addDocument = useAddPropertyMedia(propertyId);
+  const uploadDocument = useUploadPropertyDocument(propertyId);
   const remove = useDeletePropertyMedia();
 
   const dossiers = useMemo<PropertyDossier[]>(
@@ -68,12 +87,17 @@ export default function DocumentsPage(): ReactNode {
   const completeDossiers = dossiers.filter((dossier) => completion(dossier.docs) >= 80).length;
 
   const submit = async (): Promise<void> => {
-    if (!propertyId || !documentUrl.trim()) return;
+    if (!propertyId || (!selectedFile && !documentUrl.trim())) return;
     setMessage(null);
     try {
-      const separator = documentUrl.includes('#') ? '&' : '#';
-      const urlWithLabel = `${documentUrl.trim()}${separator}tipo=${encodeURIComponent(docLabel)}`;
-      await addDocument.mutateAsync({ url: urlWithLabel, type: 'DOC' });
+      if (selectedFile) {
+        await uploadDocument.mutateAsync({ file: selectedFile, label: docLabel });
+        setSelectedFile(null);
+      } else {
+        const separator = documentUrl.includes('#') ? '&' : '#';
+        const urlWithLabel = `${documentUrl.trim()}${separator}tipo=${encodeURIComponent(docLabel)}`;
+        await addDocument.mutateAsync({ url: urlWithLabel, type: 'DOC' });
+      }
       setDocumentUrl('');
       setMessage('Documento guardado correctamente.');
     } catch (error) {
@@ -99,9 +123,15 @@ export default function DocumentsPage(): ReactNode {
       <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1">
         <div className="flex items-center gap-2">
           <Upload className="h-5 w-5 text-brand" />
-          <h2 className="font-semibold text-content">Agregar documento</h2>
+          <div>
+            <h2 className="font-semibold text-content">Agregar documento</h2>
+            <p className="mt-0.5 text-xs text-content-muted">
+              Adjunta PDF, Word, imagen o pega una URL publica del expediente.
+            </p>
+          </div>
         </div>
-        <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_0.8fr_1fr_auto]">
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_0.8fr_1fr]">
           <select
             value={propertyId}
             onChange={(event) => setPropertyId(event.target.value)}
@@ -111,7 +141,7 @@ export default function DocumentsPage(): ReactNode {
             <option value="">Selecciona una propiedad</option>
             {data?.items.map((property) => (
               <option key={property.id} value={property.id}>
-                {property.code} · {property.title}
+                {property.code} - {property.title}
               </option>
             ))}
           </select>
@@ -131,23 +161,50 @@ export default function DocumentsPage(): ReactNode {
             type="url"
             value={documentUrl}
             onChange={(event) => setDocumentUrl(event.target.value)}
-            placeholder="https://.../documento.pdf"
-            aria-label="URL pública del documento"
-            className="h-11 rounded-md border border-border bg-surface px-3 text-sm text-content focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            placeholder="URL alternativa: https://.../documento.pdf"
+            aria-label="URL publica del documento"
+            disabled={Boolean(selectedFile)}
+            className="h-11 rounded-md border border-border bg-surface px-3 text-sm text-content focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
           />
+        </div>
+
+        <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
+          <label className="flex min-h-20 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border-strong bg-surface-sunken px-4 py-3 text-center transition hover:border-brand">
+            <Upload className="h-5 w-5 text-brand-deep" />
+            <span className="mt-1 text-sm font-medium text-content">
+              {selectedFile ? selectedFile.name : 'Seleccionar documento del equipo'}
+            </span>
+            <span className="mt-0.5 text-xs text-content-muted">PDF, Word, JPG o PNG</span>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setSelectedFile(file);
+                if (file) setDocumentUrl('');
+              }}
+            />
+          </label>
           <Button
             variant="brand"
             onClick={() => void submit()}
-            disabled={!propertyId || !documentUrl.trim() || addDocument.isPending}
+            disabled={
+              !propertyId ||
+              (!selectedFile && !documentUrl.trim()) ||
+              addDocument.isPending ||
+              uploadDocument.isPending
+            }
+            className="min-h-20"
           >
-            {addDocument.isPending ? 'Guardando…' : 'Guardar'}
+            {addDocument.isPending || uploadDocument.isPending ? 'Guardando...' : 'Guardar'}
           </Button>
         </div>
         {message && <p className="mt-3 text-sm text-content-secondary">{message}</p>}
       </section>
 
       {isLoading ? (
-        <p className="py-16 text-center text-sm text-content-muted">Cargando expedientes…</p>
+        <p className="py-16 text-center text-sm text-content-muted">Cargando expedientes...</p>
       ) : isError ? (
         <p className="py-16 text-center text-sm text-danger">
           No se pudieron cargar los documentos.
@@ -155,7 +212,7 @@ export default function DocumentsPage(): ReactNode {
       ) : dossiers.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface-raised p-12 text-center">
           <FileText className="mx-auto h-8 w-8 text-content-muted" />
-          <p className="mt-3 font-medium text-content">Aún no hay propiedades</p>
+          <p className="mt-3 font-medium text-content">Aun no hay propiedades</p>
           <p className="mt-1 text-sm text-content-muted">
             Crea una propiedad para armar su expediente.
           </p>
@@ -195,7 +252,7 @@ function DossierCard({
   deleting: boolean;
 }): ReactNode {
   const pct = completion(dossier.docs);
-  const labels = dossier.docs.map((doc) => fileName(doc.url).toLowerCase());
+  const labels = dossier.docs.map((doc) => docName(doc.url).toLowerCase());
 
   return (
     <article className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1">
@@ -209,7 +266,7 @@ function DossierCard({
             <span className="truncate">{dossier.property.title}</span>
           </Link>
           <p className="mt-1 text-xs text-content-muted">
-            {dossier.property.code} · {dossier.docs.length} documento
+            {dossier.property.code} - {dossier.docs.length} documento
             {dossier.docs.length === 1 ? '' : 's'}
           </p>
         </div>
@@ -245,10 +302,10 @@ function DossierCard({
             <li key={media.id} className="flex items-center gap-3 px-3 py-2">
               <FileText className="h-4 w-4 shrink-0 text-brand-deep" />
               <span className="min-w-0 flex-1 truncate text-sm text-content">
-                {fileName(media.url)}
+                {docName(media.url)}
               </span>
               <a
-                href={media.url}
+                href={cleanUrl(media.url)}
                 target="_blank"
                 rel="noreferrer"
                 className="text-content-muted hover:text-content"

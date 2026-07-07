@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, RefreshCw, Send, Sparkles, X } from 'lucide-react';
+import { Building2, RefreshCw, Send, Sparkles, Trash2, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   type Match,
+  useClearMatches,
   useMatches,
   useRunMatching,
   useUpdateMatchStatus,
@@ -39,12 +40,22 @@ export default function MatchingPage(): ReactNode {
   const [minScore, setMinScore] = useState<number | undefined>(undefined);
   const { data, isLoading } = useMatches({ minScore });
   const runMatching = useRunMatching();
+  const clearMatches = useClearMatches();
   const [note, setNote] = useState<string | null>(null);
 
   const recalculate = async (): Promise<void> => {
     const result = await runMatching.mutateAsync({});
     setNote(
       `${result.matches} coincidencia${result.matches === 1 ? '' : 's'} calculada${result.matches === 1 ? '' : 's'}.`,
+    );
+    setTimeout(() => setNote(null), 4000);
+  };
+
+  const clearAll = async (): Promise<void> => {
+    if (!window.confirm('¿Borrar todas las coincidencias calculadas?')) return;
+    const result = await clearMatches.mutateAsync();
+    setNote(
+      `${result.deleted} coincidencia${result.deleted === 1 ? '' : 's'} borrada${result.deleted === 1 ? '' : 's'}.`,
     );
     setTimeout(() => setNote(null), 4000);
   };
@@ -61,14 +72,24 @@ export default function MatchingPage(): ReactNode {
             Compradores conectados con propiedades, automáticamente.
           </p>
         </div>
-        <Button
-          variant="secondary"
-          onClick={() => void recalculate()}
-          disabled={runMatching.isPending}
-        >
-          <RefreshCw className={`h-4 w-4 ${runMatching.isPending ? 'animate-spin' : ''}`} />
-          Recalcular
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => void clearAll()}
+            disabled={clearMatches.isPending || !data?.items.length}
+          >
+            <Trash2 className="h-4 w-4" />
+            Borrar coincidencias
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => void recalculate()}
+            disabled={runMatching.isPending}
+          >
+            <RefreshCw className={`h-4 w-4 ${runMatching.isPending ? 'animate-spin' : ''}`} />
+            Recalcular
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between">

@@ -33,7 +33,6 @@ const PERMISSIONS: Array<[string, string]> = [
   ['roles.manage', 'Gestionar roles'],
   ['settings.manage', 'Gestionar configuración'],
   ['integrations.manage', 'Gestionar integraciones'],
-  ['ai.use', 'Usar el asistente IA'],
 ];
 
 const ALL = PERMISSIONS.map(([code]) => code);
@@ -65,7 +64,6 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'academy.read',
     'academy.create',
     'academy.update',
-    'ai.use',
   ],
   ASISTENTE: [
     'clients.read',
@@ -82,7 +80,6 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'academy.read',
     'academy.create',
     'academy.update',
-    'ai.use',
   ],
 };
 

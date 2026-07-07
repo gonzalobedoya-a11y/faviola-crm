@@ -219,4 +219,9 @@ export class MatchingService {
     if (!match) throw new NotFoundException('Coincidencia no encontrada');
     return this.prisma.match.update({ where: { id }, data: { status: dto.status } });
   }
+
+  async clear(tenantId: string): Promise<{ deleted: number }> {
+    const result = await this.prisma.match.deleteMany({ where: { tenantId } });
+    return { deleted: result.count };
+  }
 }

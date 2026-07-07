@@ -1,12 +1,11 @@
 'use client';
 
-import { LogOut, Sparkles } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { BrandLockup } from '@/components/brand/brand-mark';
-import { Button } from '@/components/ui/button';
 import { navItems } from '@/config/nav';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cn } from '@/lib/utils';
@@ -56,21 +55,6 @@ export function Sidebar(): ReactNode {
         })}
       </nav>
 
-      <div className="px-3 pb-3">
-        <div className="rounded-xl border border-border bg-surface-raised p-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-brand" />
-            <p className="text-sm font-semibold text-content">FV Copilot</p>
-          </div>
-          <p className="mt-1.5 text-xs text-content-muted">
-            Tu asistente inteligente para cerrar más negocios.
-          </p>
-          <Button asChild variant="secondary" size="sm" className="mt-3 w-full">
-            <Link href="/reports">Ver recomendaciones</Link>
-          </Button>
-        </div>
-      </div>
-
       <div className="flex items-center gap-3 border-t border-border px-4 py-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-medium uppercase text-brand-foreground">
           {initials}
@@ -92,7 +76,7 @@ function LogoutButton(): ReactNode {
   return (
     <button
       type="button"
-      aria-label="Cerrar sesión"
+      aria-label="Cerrar sesion"
       onClick={() => void logout()}
       className="flex h-8 w-8 items-center justify-center rounded-md text-content-muted transition-colors hover:bg-surface hover:text-danger"
     >
