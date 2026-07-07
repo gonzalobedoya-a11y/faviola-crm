@@ -2,14 +2,18 @@
 
 import {
   BookOpenCheck,
+  BriefcaseBusiness,
   CheckCircle2,
-  GraduationCap,
-  LoaderCircle,
   LockKeyhole,
+  LoaderCircle,
+  Mail,
   MessageCircle,
+  Phone,
   Send,
+  User,
   UsersRound,
 } from 'lucide-react';
+import Image from 'next/image';
 import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -50,6 +54,7 @@ export default function AcademyPublicPage(): ReactNode {
   const portalAccess = useAcademyPortalAccess();
   const [sent, setSent] = useState(false);
   const [portal, setPortal] = useState<AcademyPortalResult | null>(null);
+  const featuredProgram = programs[0];
 
   const submitLead = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -84,127 +89,201 @@ export default function AcademyPublicPage(): ReactNode {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f4ee] text-[#241f1a]">
-      <section className="mx-auto grid max-w-6xl gap-8 px-5 py-8 lg:grid-cols-[0.95fr_1.05fr] lg:py-12">
-        <aside className="space-y-6">
-          <div>
-            <p className="font-script text-4xl text-[#a77934]">Academia FV</p>
-            <h1 className="mt-4 font-display text-4xl leading-tight md:text-6xl">
-              Talleres, charlas y capacitaciones para vendedores
-            </h1>
-            <p className="mt-5 max-w-xl text-sm leading-7 text-[#665c51]">
-              Formacion comercial con enfoque practico para vendedores inmobiliarios, equipos y
-              personas que quieren ordenar su prospeccion, captacion y cierre.
-            </p>
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f2ea] text-[#171512]">
+      <Image
+        src="/brand/academy-bg.png"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,252,247,0.96)_0%,rgba(255,252,247,0.82)_35%,rgba(255,252,247,0.52)_62%,rgba(255,252,247,0.2)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#f7f2ea] to-transparent" />
+
+      <section className="relative z-10 mx-auto grid min-h-screen max-w-[1500px] gap-6 px-5 py-5 md:px-8 lg:grid-cols-[0.95fr_0.68fr_0.9fr] lg:items-center lg:px-12">
+        <div className="max-w-2xl pt-8 lg:pt-0">
+          <div className="flex items-center gap-5">
+            <p className="font-script text-4xl text-[#a77934] md:text-5xl">Academia FV</p>
+            <span className="h-px w-16 bg-[#a77934]" />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <h1 className="mt-7 max-w-2xl font-display text-5xl leading-[0.98] text-[#161412] md:text-7xl">
+            Talleres, charlas y capacitaciones para{' '}
+            <span className="text-[#9a7132]">vendedores</span>
+          </h1>
+
+          <span className="mt-7 block h-1 w-16 bg-[#a77934]" />
+
+          <p className="mt-6 max-w-xl text-base leading-8 text-[#51483f] md:text-lg">
+            Formacion comercial con enfoque practico para vendedores inmobiliarios, equipos y
+            personas que quieren ordenar su prospeccion, captacion y cierre.
+          </p>
+
+          <div className="mt-7 grid max-w-xl gap-3 sm:grid-cols-3">
             <Signal icon={<BookOpenCheck className="h-5 w-5" />} label="Metodo practico" />
             <Signal icon={<UsersRound className="h-5 w-5" />} label="Para equipos" />
-            <Signal icon={<GraduationCap className="h-5 w-5" />} label="Acceso por codigo" />
+            <Signal icon={<LockKeyhole className="h-5 w-5" />} label="Acceso por codigo" />
           </div>
 
-          <div className="rounded-2xl border border-[#e5d8c5] bg-white p-5 shadow-[0_18px_60px_rgba(36,31,26,0.08)]">
+          <div className="mt-7 max-w-2xl rounded-xl border border-white/10 bg-[#17191a] p-5 text-white shadow-[0_24px_70px_rgba(23,25,26,0.22)]">
             <h2 className="font-display text-2xl">Programas sugeridos</h2>
-            <div className="mt-4 grid gap-3">
-              {isLoading ? (
-                <p className="text-sm text-[#7a6f64]">Cargando programas...</p>
-              ) : (
-                programs.map((program) => (
-                  <article key={program.id} className="rounded-xl border border-[#eadfce] p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-[#241f1a] px-2 py-1 text-[11px] font-medium text-white">
-                        {formatLabel[program.format]}
-                      </span>
-                      <span className="text-xs text-[#7a6f64]">{program.modality}</span>
-                    </div>
-                    <h3 className="mt-3 text-sm font-semibold">{program.title}</h3>
-                    <p className="mt-2 text-xs leading-5 text-[#665c51]">{program.description}</p>
-                  </article>
-                ))
-              )}
-            </div>
+            {isLoading ? (
+              <p className="mt-4 text-sm text-white/70">Cargando programas...</p>
+            ) : featuredProgram ? (
+              <article className="mt-4 grid gap-4 sm:grid-cols-[168px_1fr]">
+                <div className="relative min-h-32 overflow-hidden rounded-lg bg-[#2c2b28]">
+                  <Image
+                    src="/brand/academy-bg.png"
+                    alt=""
+                    fill
+                    sizes="168px"
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-[#17191a]/25" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="rounded-md bg-[#b98a3b] px-3 py-1 text-xs font-semibold text-white">
+                      {formatLabel[featuredProgram.format]}
+                    </span>
+                    <span className="text-sm text-white/75">{featuredProgram.modality}</span>
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold">{featuredProgram.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-white/72">
+                    {featuredProgram.description}
+                  </p>
+                  <a
+                    href="#lead-form"
+                    className="mt-4 inline-flex items-center text-sm font-semibold text-[#d0a559]"
+                  >
+                    Ver mas programas
+                  </a>
+                </div>
+              </article>
+            ) : (
+              <p className="mt-4 text-sm text-white/70">Pronto anunciaremos nuevos programas.</p>
+            )}
           </div>
-        </aside>
+        </div>
 
-        <div className="space-y-5">
+        <div className="relative hidden min-h-[640px] overflow-hidden rounded-[32px] bg-white/20 shadow-[0_28px_80px_rgba(36,31,26,0.12)] lg:block">
+          <Image
+            src="/brand/academy-brand.png"
+            alt="Faviola Velarde"
+            fill
+            priority
+            sizes="420px"
+            className="object-cover object-[56%_50%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#f7f2ea]/18 via-transparent to-transparent" />
+        </div>
+
+        <div className="space-y-5 pb-10 lg:pb-0">
           <form
+            id="lead-form"
             onSubmit={(event) => void submitLead(event)}
-            className="rounded-2xl border border-[#e5d8c5] bg-white p-6 shadow-[0_18px_60px_rgba(36,31,26,0.1)]"
+            className="overflow-hidden rounded-[26px] border border-[#d9cbb7] bg-[#fffaf4]/95 shadow-[0_26px_80px_rgba(36,31,26,0.18)] backdrop-blur"
           >
-            <h2 className="font-display text-2xl">Quiero informacion</h2>
-            {sent && (
-              <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-                <CheckCircle2 className="mb-1 h-4 w-4" />
-                Listo. El lead quedo registrado y se abrio WhatsApp para continuar.
+            <div className="flex items-center gap-4 bg-[#17191a] px-6 py-4 text-white">
+              <span className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-md border border-[#b98a3b]/70">
+                <Image
+                  src="/brand/logo-monogram.png"
+                  alt=""
+                  fill
+                  sizes="56px"
+                  className="object-cover"
+                />
+              </span>
+              <div>
+                <p className="font-display text-2xl leading-none md:text-3xl">Quiero informacion</p>
+                <p className="mt-1 text-xs uppercase text-[#d0a559]">Faviola Velarde</p>
               </div>
-            )}
-            {createLead.isError && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                No pudimos registrar tus datos. Intenta nuevamente.
-              </div>
-            )}
+            </div>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <Field label="Nombre" name="firstName" required />
-              <Field label="Apellido" name="lastName" />
-              <Field label="WhatsApp" name="phone" required />
-              <Field label="Correo" name="email" type="email" />
-              <label className="space-y-1 text-sm font-medium">
-                Interes
-                <select name="formatInterest" className={inputClass} defaultValue="WORKSHOP">
+            <div className="p-5">
+              {sent && (
+                <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                  <CheckCircle2 className="mb-1 h-4 w-4" />
+                  Listo. El lead quedo registrado y se abrio WhatsApp para continuar.
+                </div>
+              )}
+              {createLead.isError && (
+                <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  No pudimos registrar tus datos. Intenta nuevamente.
+                </div>
+              )}
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field icon={<User />} label="Nombre" name="firstName" required />
+                <Field icon={<User />} label="Apellido" name="lastName" />
+                <Field icon={<Phone />} label="WhatsApp" name="phone" required />
+                <Field icon={<Mail />} label="Correo" name="email" type="email" />
+                <SelectField label="Interes" name="formatInterest" defaultValue="WORKSHOP">
                   <option value="WORKSHOP">Taller practico</option>
                   <option value="TALK">Charla</option>
                   <option value="TRAINING">Capacitacion para equipo</option>
-                </select>
-              </label>
-              <label className="space-y-1 text-sm font-medium">
-                Programa
-                <select name="programId" className={inputClass} defaultValue="">
+                </SelectField>
+                <SelectField label="Programa" name="programId" defaultValue="">
                   <option value="">Por definir</option>
                   {programs.map((program) => (
                     <option key={program.id} value={program.id}>
                       {program.title}
                     </option>
                   ))}
-                </select>
+                </SelectField>
+                <Field
+                  icon={<BriefcaseBusiness />}
+                  label="Experiencia"
+                  name="experienceLevel"
+                  placeholder="Nueva, intermedia, avanzada..."
+                  className="sm:col-span-2"
+                />
+              </div>
+
+              <label className="mt-3 block space-y-2 text-sm font-medium text-[#171512]">
+                Objetivo
+                <textarea
+                  name="objective"
+                  rows={3}
+                  placeholder="Ej. Quiero captar mas propietarios, mejorar cierres o entrenar a mi equipo."
+                  className={`${inputClass} h-auto py-3`}
+                />
               </label>
-              <Field
-                label="Experiencia"
-                name="experienceLevel"
-                placeholder="Nueva, intermedia..."
-              />
-            </div>
-            <label className="mt-4 block space-y-1 text-sm font-medium">
-              Objetivo
-              <textarea
-                name="objective"
-                rows={4}
-                placeholder="Ej. Quiero captar mas propietarios, mejorar cierres o entrenar a mi equipo."
-                className={`${inputClass} h-auto py-3`}
-              />
-            </label>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <Button type="submit" variant="brand" size="lg" disabled={createLead.isPending}>
-                {createLead.isPending ? (
-                  <LoaderCircle className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Send className="h-5 w-5" />
-                )}
-                Enviar y abrir WhatsApp
-              </Button>
-              <Button asChild variant="secondary" size="lg">
-                <a href={academyWhatsAppUrl()} target="_blank" rel="noreferrer">
-                  <MessageCircle className="h-5 w-5" />
-                  Solo WhatsApp
-                </a>
-              </Button>
+
+              <div className="mt-5 grid gap-3">
+                <Button
+                  type="submit"
+                  variant="brand"
+                  size="lg"
+                  className="h-12 rounded-xl bg-[#c2923f] text-base hover:bg-[#a77934]"
+                  disabled={createLead.isPending}
+                >
+                  {createLead.isPending ? (
+                    <LoaderCircle className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
+                  Enviar y abrir WhatsApp
+                </Button>
+                <Button
+                  asChild
+                  variant="secondary"
+                  size="lg"
+                  className="h-12 rounded-xl border-[#d9cbb7] bg-white/70 text-base"
+                >
+                  <a href={academyWhatsAppUrl()} target="_blank" rel="noreferrer">
+                    <MessageCircle className="h-5 w-5" />
+                    Solo WhatsApp
+                  </a>
+                </Button>
+              </div>
             </div>
           </form>
 
           <form
             onSubmit={(event) => void submitPortal(event)}
-            className="rounded-2xl border border-[#e5d8c5] bg-white p-6"
+            className="rounded-2xl border border-[#d9cbb7] bg-white/82 p-5 shadow-[0_18px_55px_rgba(36,31,26,0.12)] backdrop-blur"
           >
             <div className="flex items-center gap-2">
               <LockKeyhole className="h-5 w-5 text-[#a77934]" />
@@ -241,28 +320,64 @@ export default function AcademyPublicPage(): ReactNode {
 }
 
 const inputClass =
-  'h-11 w-full rounded-xl border border-[#eadfce] bg-white px-3 text-sm outline-none focus:border-[#a9884e] focus:ring-2 focus:ring-[#a9884e]/20';
+  'h-11 w-full rounded-xl border border-[#dfd1bf] bg-white/80 px-3 text-sm text-[#171512] outline-none transition focus:border-[#b98a3b] focus:ring-2 focus:ring-[#b98a3b]/20';
 
 function Field({
   label,
   name,
   type = 'text',
+  icon,
+  className = '',
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   name: string;
+  icon?: ReactNode;
 }): ReactNode {
   return (
-    <label className="space-y-1 text-sm font-medium">
+    <label className={`space-y-2 text-sm font-medium text-[#171512] ${className}`}>
       {label}
-      <input name={name} type={type} className={inputClass} {...props} />
+      <span className="relative block">
+        {icon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex h-5 w-5 -translate-y-1/2 text-[#a77934] [&>svg]:h-5 [&>svg]:w-5">
+            {icon}
+          </span>
+        )}
+        <input
+          name={name}
+          type={type}
+          className={`${inputClass} ${icon ? 'pl-11' : ''}`}
+          {...props}
+        />
+      </span>
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  name,
+  children,
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  children: ReactNode;
+  defaultValue?: string;
+}): ReactNode {
+  return (
+    <label className="space-y-2 text-sm font-medium text-[#171512]">
+      {label}
+      <select name={name} className={inputClass} defaultValue={defaultValue}>
+        {children}
+      </select>
     </label>
   );
 }
 
 function Signal({ icon, label }: { icon: ReactNode; label: string }): ReactNode {
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-[#e5d8c5] bg-white px-4 py-3 text-sm font-medium">
+    <div className="flex min-h-20 items-center gap-3 rounded-xl border border-[#eadfce] bg-white/78 px-4 py-3 text-sm font-semibold text-[#171512] shadow-[0_14px_35px_rgba(36,31,26,0.08)] backdrop-blur">
       <span className="text-[#a77934]">{icon}</span>
       {label}
     </div>
