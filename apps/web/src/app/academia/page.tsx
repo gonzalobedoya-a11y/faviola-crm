@@ -9,9 +9,12 @@ import {
   Mail,
   MessageCircle,
   Phone,
+  Play,
   Send,
   User,
   UsersRound,
+  Video,
+  X,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react';
@@ -27,6 +30,24 @@ const formatLabel: Record<AcademyFormat, string> = {
 };
 
 const WHATSAPP_NUMBER = '51986445884';
+
+const videoSlots = [
+  {
+    title: 'Clase practica',
+    description: 'Fragmentos de talleres, charlas o asesorias de Faviola.',
+    src: '/brand/academy-videos/video-1.mp4',
+  },
+  {
+    title: 'Consejos para vendedores',
+    description: 'Videos cortos para redes sociales y contenido educativo.',
+    src: '/brand/academy-videos/video-2.mp4',
+  },
+  {
+    title: 'Capacitaciones y testimonios',
+    description: 'Material de confianza para mostrar experiencia y cercania.',
+    src: '/brand/academy-videos/video-3.mp4',
+  },
+];
 
 function academyWhatsAppUrl(form?: HTMLFormElement): string {
   const data = form ? new FormData(form) : null;
@@ -48,6 +69,8 @@ export default function AcademyPublicPage(): ReactNode {
   const { data: programs = [] } = usePublicAcademyPrograms();
   const createLead = useCreateAcademyLead();
   const [sent, setSent] = useState(false);
+  const [showVideos, setShowVideos] = useState(false);
+  const [missingVideos, setMissingVideos] = useState<Set<string>>(new Set());
 
   const submitLead = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -107,6 +130,15 @@ export default function AcademyPublicPage(): ReactNode {
             <Signal icon={<UsersRound className="h-5 w-5" />} label="Para equipos" />
             <Signal icon={<LockKeyhole className="h-5 w-5" />} label="Acceso por codigo" />
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowVideos(true)}
+            className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl border border-[#cfae7e] bg-white/72 px-5 text-sm font-semibold text-[#8a6125] shadow-[0_14px_35px_rgba(36,31,26,0.08)] backdrop-blur transition hover:bg-white"
+          >
+            <Video className="h-4 w-4" />
+            Ver videos de Faviola
+          </button>
         </div>
 
         <div className="relative hidden h-[86vh] min-h-[560px] lg:block">
@@ -221,6 +253,72 @@ export default function AcademyPublicPage(): ReactNode {
           </div>
         </form>
       </section>
+
+      {showVideos && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171512]/70 p-4 backdrop-blur-sm">
+          <section className="w-full max-w-5xl overflow-hidden rounded-[28px] border border-[#d9cbb7] bg-[#fffaf4] shadow-[0_30px_90px_rgba(0,0,0,0.28)]">
+            <div className="flex items-center justify-between border-b border-[#eadfce] bg-[#17191a] px-5 py-4 text-white">
+              <div>
+                <p className="font-display text-3xl">Videos de Faviola</p>
+                <p className="mt-1 text-sm text-[#d0a559]">
+                  Reels, clases cortas y contenido de redes sociales.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowVideos(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:bg-white/20"
+                aria-label="Cerrar videos"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid gap-4 p-5 md:grid-cols-3">
+              {videoSlots.map((video, index) => (
+                <article
+                  key={video.src}
+                  className="overflow-hidden rounded-2xl border border-[#eadfce] bg-white shadow-[0_16px_45px_rgba(36,31,26,0.08)]"
+                >
+                  <div className="relative aspect-[9/16] bg-[#17191a]">
+                    {missingVideos.has(video.src) ? (
+                      <div className="flex h-full flex-col items-center justify-center px-6 text-center text-white">
+                        <Video className="h-10 w-10 text-[#d0a559]" />
+                        <p className="mt-4 text-sm font-semibold">Pendiente de subir</p>
+                        <p className="mt-2 text-xs leading-5 text-white/65">
+                          Guarda el archivo como video-{index + 1}.mp4 y lo publicamos aqui.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <video
+                          src={video.src}
+                          controls
+                          preload="metadata"
+                          className="h-full w-full object-cover"
+                          onError={() =>
+                            setMissingVideos((current) => new Set(current).add(video.src))
+                          }
+                        />
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0">
+                          <Play className="h-10 w-10 text-white" />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm font-semibold text-[#171512]">{video.title}</p>
+                    <p className="mt-1 text-xs leading-5 text-[#655b50]">{video.description}</p>
+                    <p className="mt-3 rounded-lg bg-[#f7f2ea] px-3 py-2 text-xs text-[#8a6125]">
+                      Archivo esperado: video-{index + 1}.mp4
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
