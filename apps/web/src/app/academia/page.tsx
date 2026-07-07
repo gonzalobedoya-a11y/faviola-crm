@@ -116,7 +116,7 @@ export default function AcademyPublicPage(): ReactNode {
       />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,252,247,0.97)_0%,rgba(255,252,247,0.82)_34%,rgba(255,252,247,0.5)_61%,rgba(255,252,247,0.18)_100%)]" />
 
-      <section className="relative z-10 mx-auto grid h-screen max-w-[1500px] grid-cols-1 items-center gap-4 px-6 py-4 md:px-8 lg:grid-cols-[0.9fr_0.64fr_0.88fr] lg:px-12">
+      <section className="relative z-10 mx-auto grid h-screen max-w-[1500px] grid-cols-1 items-center gap-3 px-6 py-4 md:px-8 lg:grid-cols-[0.84fr_0.78fr_0.88fr] lg:px-12">
         <div className="min-w-0 max-w-[620px]">
           <div className="flex items-center gap-5">
             <p className="font-script text-4xl text-[#a77934] md:text-5xl">Academia FV</p>
@@ -151,14 +151,14 @@ export default function AcademyPublicPage(): ReactNode {
           </button>
         </div>
 
-        <div className="relative hidden h-[86vh] min-h-[560px] lg:block">
+        <div className="relative hidden h-[94vh] min-h-[610px] lg:block">
           <Image
-            src="/brand/academy-fv-transparent.png"
+            src="/brand/academy-faviola-hd-clean.png"
             alt="Faviola Velarde"
             fill
             priority
-            sizes="390px"
-            className="scale-125 object-contain object-bottom drop-shadow-[0_28px_48px_rgba(36,31,26,0.18)]"
+            sizes="460px"
+            className="scale-[1.52] object-contain object-bottom drop-shadow-[0_28px_48px_rgba(36,31,26,0.18)]"
           />
         </div>
 
