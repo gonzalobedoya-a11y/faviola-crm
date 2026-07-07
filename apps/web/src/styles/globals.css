@@ -60,25 +60,37 @@
 /* ── Impresión de certificados (Academia) ──────────────────────────
    A4 horizontal, sin márgenes del navegador (quita URL/fecha/página).
    Cada .cert-page ocupa una hoja; se fuerza la impresión de colores. */
-@page cert-landscape {
-  size: A4 landscape;
-  margin: 0;
-}
-
 @media print {
   @page {
+    size: A4 landscape;
     margin: 0;
   }
   /* El shell (sidebar/header) y el padding del contenedor no se imprimen. */
+  html,
+  body {
+    width: 297mm;
+    min-height: 210mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
   main {
     padding: 0 !important;
+    margin: 0 !important;
   }
   .cert-page {
-    page: cert-landscape;
+    width: 297mm !important;
+    height: 210mm !important;
+    max-width: none !important;
+    margin: 0 !important;
+    overflow: hidden !important;
     break-after: page;
+    page-break-after: always;
+    box-shadow: none !important;
   }
   .cert-page:last-child {
     break-after: auto;
+    page-break-after: auto;
   }
   .cert-page,
   .cert-page * {
