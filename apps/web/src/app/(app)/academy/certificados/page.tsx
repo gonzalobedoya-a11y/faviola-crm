@@ -356,6 +356,28 @@ function Certificado({
 
   return (
     <div style={rootStyle}>
+      {/* Fondo de marca */}
+      <Image
+        src="/brand/landing-bg.png"
+        alt=""
+        fill
+        sizes="980px"
+        style={{
+          objectFit: 'cover',
+          opacity: 0.42,
+          zIndex: 0,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'linear-gradient(90deg, rgba(255,252,247,0.94) 0%, rgba(255,252,247,0.84) 48%, rgba(255,252,247,0.72) 100%)',
+          zIndex: 0,
+        }}
+      />
+
       {/* Marco dorado doble */}
       <div
         style={{
@@ -363,6 +385,7 @@ function Certificado({
           inset: '2.4cqw',
           border: `0.32cqw solid ${GOLD}`,
           borderRadius: '0.6cqw',
+          zIndex: 1,
         }}
       />
       <div
@@ -372,6 +395,7 @@ function Certificado({
           border: `0.12cqw solid ${GOLD}`,
           opacity: 0.55,
           borderRadius: '0.4cqw',
+          zIndex: 1,
         }}
       />
 
@@ -384,6 +408,7 @@ function Certificado({
         style={{
           position: 'absolute',
           inset: '5.6cqw 8cqw',
+          zIndex: 2,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
