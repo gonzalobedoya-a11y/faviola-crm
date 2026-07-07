@@ -42,7 +42,7 @@ export default function MatchingPage(): ReactNode {
   const [note, setNote] = useState<string | null>(null);
 
   const recalculate = async (): Promise<void> => {
-    const result = await runMatching.mutateAsync();
+    const result = await runMatching.mutateAsync({});
     setNote(
       `${result.matches} coincidencia${result.matches === 1 ? '' : 's'} calculada${result.matches === 1 ? '' : 's'}.`,
     );

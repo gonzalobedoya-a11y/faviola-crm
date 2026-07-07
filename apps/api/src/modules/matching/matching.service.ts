@@ -190,7 +190,9 @@ export class MatchingService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
-          client: { select: { id: true, firstName: true, lastName: true, temperature: true } },
+          client: {
+            select: { id: true, firstName: true, lastName: true, phone: true, temperature: true },
+          },
           property: {
             select: {
               id: true,

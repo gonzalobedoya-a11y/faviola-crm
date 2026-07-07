@@ -13,6 +13,7 @@ export interface Match {
     id: string;
     firstName: string;
     lastName: string;
+    phone?: string | null;
     temperature: 'HOT' | 'WARM' | 'COLD';
   };
   property: {
@@ -28,6 +29,9 @@ export interface Match {
 export interface MatchFilters {
   minScore?: number;
   status?: MatchStatus;
+  clientId?: string;
+  propertyId?: string;
+  pageSize?: number;
   page?: number;
 }
 
@@ -45,6 +49,10 @@ export function useMatches(filters: MatchFilters) {
   const params = new URLSearchParams();
   if (filters.minScore) params.set('minScore', String(filters.minScore));
   if (filters.status) params.set('status', filters.status);
+  if (filters.clientId) params.set('clientId', filters.clientId);
+  if (filters.propertyId) params.set('propertyId', filters.propertyId);
+  if (filters.pageSize) params.set('pageSize', String(filters.pageSize));
+  if (filters.page) params.set('page', String(filters.page));
   const qs = params.toString();
   return useQuery({
     queryKey: matchKeys.list(filters),
@@ -55,7 +63,8 @@ export function useMatches(filters: MatchFilters) {
 export function useRunMatching() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => httpClient.post<{ matches: number }>('/matches/run', {}),
+    mutationFn: (input?: { clientId?: string; propertyId?: string }) =>
+      httpClient.post<{ matches: number }>('/matches/run', input ?? {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: matchKeys.all }),
   });
 }
