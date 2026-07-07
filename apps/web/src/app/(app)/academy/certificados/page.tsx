@@ -349,7 +349,7 @@ function Certificado({
     overflow: 'hidden',
     fontFamily: 'var(--font-sans), Georgia, serif',
     color: INK,
-    background: `radial-gradient(120% 80% at 50% 0%, #ffffff 0%, ${CREAM} 55%, #f3ead8 100%)`,
+    background: CREAM,
     printColorAdjust: 'exact',
     WebkitPrintColorAdjust: 'exact',
   };
@@ -364,7 +364,8 @@ function Certificado({
         sizes="980px"
         style={{
           objectFit: 'cover',
-          opacity: 0.42,
+          objectPosition: 'left center',
+          opacity: 0.58,
           zIndex: 0,
         }}
       />
@@ -373,28 +374,38 @@ function Certificado({
           position: 'absolute',
           inset: 0,
           background:
-            'linear-gradient(90deg, rgba(255,252,247,0.94) 0%, rgba(255,252,247,0.84) 48%, rgba(255,252,247,0.72) 100%)',
+            'linear-gradient(90deg, rgba(250,247,240,0.18) 0%, rgba(250,247,240,0.58) 24%, rgba(255,254,250,0.96) 43%, rgba(255,254,250,0.98) 100%)',
+          zIndex: 0,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(70% 72% at 62% 47%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.76) 45%, rgba(255,255,255,0) 73%)',
           zIndex: 0,
         }}
       />
 
-      {/* Marco dorado doble */}
+      {/* Marco dorado */}
       <div
         style={{
           position: 'absolute',
-          inset: '2.4cqw',
-          border: `0.32cqw solid ${GOLD}`,
-          borderRadius: '0.6cqw',
+          inset: '1.8cqw',
+          border: `0.12cqw solid ${GOLD}`,
           zIndex: 1,
         }}
       />
       <div
         style={{
           position: 'absolute',
-          inset: '3.1cqw',
-          border: `0.12cqw solid ${GOLD}`,
-          opacity: 0.55,
-          borderRadius: '0.4cqw',
+          left: '1.8cqw',
+          right: '17cqw',
+          bottom: '1.8cqw',
+          height: '0.12cqw',
+          background: `linear-gradient(90deg, transparent 0%, ${GOLD} 18%, ${GOLD} 82%, transparent 100%)`,
+          opacity: 0.7,
           zIndex: 1,
         }}
       />
@@ -407,7 +418,7 @@ function Certificado({
       <div
         style={{
           position: 'absolute',
-          inset: '5.6cqw 8cqw',
+          inset: '2.4cqw 7cqw 3cqw 25cqw',
           zIndex: 2,
           display: 'flex',
           flexDirection: 'column',
@@ -430,10 +441,10 @@ function Certificado({
           <p
             style={{
               fontFamily: 'var(--font-display), Georgia, serif',
-              fontSize: '2.2cqw',
+              fontSize: '2.05cqw',
               letterSpacing: '0.28em',
               color: INK,
-              marginTop: '0.6cqw',
+              marginTop: '0.45cqw',
               paddingLeft: '0.28em',
             }}
           >
@@ -445,7 +456,7 @@ function Certificado({
             <span style={{ width: '2.4cqw', height: '0.06cqw', background: GOLD }} />
             <span
               style={{
-                fontSize: '0.95cqw',
+                fontSize: '0.9cqw',
                 letterSpacing: '0.42em',
                 color: GOLD_DEEP,
                 paddingLeft: '0.42em',
@@ -464,11 +475,11 @@ function Certificado({
           <h2
             style={{
               fontFamily: 'var(--font-display), Georgia, serif',
-              fontSize: '6cqw',
+              fontSize: '6.2cqw',
               lineHeight: 1,
-              letterSpacing: '0.06em',
+              letterSpacing: '0.1em',
               color: INK,
-              paddingLeft: '0.06em',
+              paddingLeft: '0.1em',
             }}
           >
             CERTIFICADO
@@ -489,7 +500,7 @@ function Certificado({
             <Dashes flip />
           </div>
 
-          <p style={{ fontSize: '1.35cqw', color: INK_SOFT, marginTop: '1.6cqw' }}>
+          <p style={{ fontSize: '1.35cqw', color: INK_SOFT, marginTop: '1.8cqw' }}>
             Se otorga el presente certificado a:
           </p>
 
@@ -500,7 +511,7 @@ function Certificado({
               lineHeight: 1.05,
               fontWeight: 700,
               color: GOLD,
-              letterSpacing: '0.03em',
+              letterSpacing: '0.05em',
               margin: '0.5cqw 0 0.7cqw',
               whiteSpace: 'nowrap',
             }}
@@ -509,7 +520,7 @@ function Certificado({
           </p>
 
           {/* Divisor con rombo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.7cqw', width: '52%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.7cqw', width: '70%' }}>
             <span style={{ flex: 1, height: '0.08cqw', background: GOLD, opacity: 0.6 }} />
             <span
               style={{
@@ -528,11 +539,13 @@ function Certificado({
           <p
             style={{
               fontFamily: 'var(--font-display), Georgia, serif',
-              fontSize: '2.1cqw',
+              fontSize: '2cqw',
               fontWeight: 700,
               color: INK,
               margin: '0.5cqw 0',
-              maxWidth: '92%',
+              maxWidth: '90%',
+              lineHeight: 1.12,
+              textTransform: 'uppercase',
             }}
           >
             {taller || 'Nombre del taller'}
@@ -542,7 +555,7 @@ function Certificado({
               fontSize: '1.25cqw',
               color: INK_SOFT,
               marginTop: '0.3cqw',
-              maxWidth: '78%',
+              maxWidth: '76%',
               lineHeight: 1.5,
             }}
           >
@@ -551,7 +564,15 @@ function Certificado({
           </p>
 
           {/* Datos: fecha · duración · modalidad */}
-          <div style={{ display: 'flex', gap: '4cqw', marginTop: '1.8cqw' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '2.6cqw',
+              marginTop: '2cqw',
+              width: '72%',
+            }}
+          >
             <InfoItem icon={<CalendarDays />} label="Fecha:" value={fecha || '—'} />
             <InfoItem
               icon={<Clock />}
@@ -569,15 +590,15 @@ function Certificado({
             alignItems: 'flex-end',
             justifyContent: 'space-between',
             width: '100%',
-            paddingTop: '1cqw',
+            paddingTop: '0.7cqw',
           }}
         >
-          <div style={{ width: '30cqw' }} />
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '18cqw' }} />
+          <div style={{ textAlign: 'center', transform: 'translateX(2cqw)' }}>
             <span
               style={{
                 fontFamily: 'var(--font-script), cursive',
-                fontSize: '3.4cqw',
+                fontSize: '3.2cqw',
                 lineHeight: 1,
                 color: INK,
               }}
@@ -598,7 +619,7 @@ function Certificado({
                 fontFamily: 'var(--font-display), Georgia, serif',
                 fontSize: '1.25cqw',
                 fontWeight: 700,
-                letterSpacing: '0.06em',
+                letterSpacing: '0.12em',
                 color: INK,
               }}
             >
@@ -608,7 +629,7 @@ function Certificado({
               ASESORA PATRIMONIAL
             </p>
           </div>
-          <div style={{ width: '30cqw', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ width: '18cqw', display: 'flex', justifyContent: 'flex-end' }}>
             <Seal />
           </div>
         </div>
