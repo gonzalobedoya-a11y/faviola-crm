@@ -9,6 +9,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Copy,
+  ExternalLink,
   FileBadge,
   GraduationCap,
   LoaderCircle,
@@ -129,6 +130,58 @@ export default function AcademyAdminPage(): ReactNode {
           </Button>
         </div>
       </header>
+
+      <section className="overflow-hidden rounded-xl border border-brand/25 bg-surface-raised shadow-elevation-1">
+        <div className="grid gap-0 lg:grid-cols-[1fr_340px]">
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-brand-deep">
+                <ExternalLink className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-brand-deep">Landing publica</p>
+                <h2 className="mt-1 font-display text-2xl text-content">
+                  Pagina de captacion Academia FV
+                </h2>
+                <p className="mt-1 text-sm text-content-muted">
+                  Comparte este enlace para que los interesados pidan informacion, abran WhatsApp y
+                  accedan al portal de alumnos.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Button asChild variant="brand">
+                    <Link href="/academia" target="_blank">
+                      <ExternalLink className="h-4 w-4" />
+                      Abrir landing
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                      void navigator.clipboard.writeText(`${window.location.origin}/academia`)
+                    }
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copiar enlace
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Link
+            href="/academia"
+            target="_blank"
+            className="relative min-h-44 overflow-hidden bg-surface-sunken lg:min-h-full"
+            aria-label="Abrir landing de Academia FV"
+          >
+            <Image src="/brand/landing-bg.png" alt="" fill className="object-cover" sizes="340px" />
+            <div className="absolute inset-0 bg-gradient-to-r from-surface-raised/40 to-transparent" />
+            <span className="absolute bottom-4 left-4 rounded-full bg-surface-raised/90 px-3 py-1.5 text-xs font-semibold text-brand-deep shadow-elevation-1">
+              faviola-crm.vercel.app/academia
+            </span>
+          </Link>
+        </div>
+      </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
