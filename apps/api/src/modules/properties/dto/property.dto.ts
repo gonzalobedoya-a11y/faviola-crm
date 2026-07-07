@@ -54,6 +54,10 @@ export const addMediaSchema = z.object({
   isCover: z.boolean().default(false),
 });
 
+export const reorderMediaSchema = z.object({
+  mediaIds: z.array(z.string().uuid()).min(1).max(30),
+});
+
 export const uploadUrlSchema = z.object({
   filename: z.string().min(1),
   contentType: z.string().min(1),
@@ -63,4 +67,5 @@ export type CreatePropertyDto = z.infer<typeof createPropertySchema>;
 export type UpdatePropertyDto = z.infer<typeof updatePropertySchema>;
 export type ListPropertiesDto = z.infer<typeof listPropertiesSchema>;
 export type AddMediaDto = z.infer<typeof addMediaSchema>;
+export type ReorderMediaDto = z.infer<typeof reorderMediaSchema>;
 export type UploadUrlDto = z.infer<typeof uploadUrlSchema>;

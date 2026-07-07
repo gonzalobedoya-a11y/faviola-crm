@@ -11,6 +11,7 @@ import type {
   AddMediaDto,
   CreatePropertyDto,
   ListPropertiesDto,
+  ReorderMediaDto,
   UpdatePropertyDto,
   UploadUrlDto,
 } from './dto/property.dto';
@@ -103,6 +104,18 @@ export class PropertiesService {
     return property;
   }
 
+  async getPublicByCode(code: string) {
+    const property = await this.prisma.property.findFirst({
+      where: { code, deletedAt: null, status: 'AVAILABLE' },
+      include: {
+        media: { where: { type: 'IMAGE' }, orderBy: [{ isCover: 'desc' }, { order: 'asc' }] },
+        agent: { select: { firstName: true, lastName: true, phone: true } },
+      },
+    });
+    if (!property) throw new NotFoundException('Propiedad no encontrada');
+    return property;
+  }
+
   async update(tenantId: string, id: string, dto: UpdatePropertyDto) {
     await this.getOrThrow(tenantId, id);
     return this.prisma.property.update({
@@ -143,6 +156,25 @@ export class PropertiesService {
       data: { isCover: false },
     });
     return this.prisma.propertyMedia.update({ where: { id: mediaId }, data: { isCover: true } });
+  }
+
+  async reorderMedia(tenantId: string, id: string, dto: ReorderMediaDto) {
+    await this.getOrThrow(tenantId, id);
+    const existing = await this.prisma.propertyMedia.findMany({
+      where: { propertyId: id, id: { in: dto.mediaIds } },
+      select: { id: true },
+    });
+    if (existing.length !== dto.mediaIds.length) {
+      throw new NotFoundException('Una o más imágenes no pertenecen a la propiedad');
+    }
+
+    await this.prisma.$transaction(
+      dto.mediaIds.map((mediaId, index) =>
+        this.prisma.propertyMedia.update({ where: { id: mediaId }, data: { order: index } }),
+      ),
+    );
+
+    return this.get(tenantId, id);
   }
 
   private async getOrThrow(tenantId: string, id: string) {

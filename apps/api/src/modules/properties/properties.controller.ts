@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import type { JwtPayload } from '../auth/auth.types';
@@ -13,6 +14,8 @@ import {
   createPropertySchema,
   type ListPropertiesDto,
   listPropertiesSchema,
+  type ReorderMediaDto,
+  reorderMediaSchema,
   type UpdatePropertyDto,
   updatePropertySchema,
   type UploadUrlDto,
@@ -42,6 +45,12 @@ export class PropertiesController {
     @Body(new ZodValidationPipe(createPropertySchema)) dto: CreatePropertyDto,
   ) {
     return this.properties.create(user.tenantId, user.sub, dto);
+  }
+
+  @Public()
+  @Get('public/:code')
+  getPublic(@Param('code') code: string) {
+    return this.properties.getPublicByCode(code);
   }
 
   @Get(':id')
@@ -94,6 +103,16 @@ export class PropertiesController {
     @Param('mediaId') mediaId: string,
   ) {
     return this.properties.setCover(user.tenantId, id, mediaId);
+  }
+
+  @Patch(':id/media/order')
+  @RequirePermissions('properties.update')
+  reorderMedia(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(reorderMediaSchema)) dto: ReorderMediaDto,
+  ) {
+    return this.properties.reorderMedia(user.tenantId, id, dto);
   }
 
   @Delete(':id/media/:mediaId')

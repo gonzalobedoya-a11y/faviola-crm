@@ -5,7 +5,11 @@ import {
   Bath,
   Bed,
   Building2,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
   FileText,
+  Globe2,
   ImagePlus,
   LoaderCircle,
   Maximize,
@@ -15,6 +19,8 @@ import {
   Ruler,
   Send,
   Sparkles,
+  Star,
+  Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -29,7 +35,13 @@ import {
   useRunMatching,
   useUpdateMatchStatus,
 } from '@/features/matching/api';
-import { useAddPropertyMedia, useProperty } from '@/features/properties/api';
+import {
+  useAddPropertyMedia,
+  useDeletePropertyMedia,
+  useProperty,
+  useReorderPropertyMedia,
+  useSetPropertyCover,
+} from '@/features/properties/api';
 import { operationLabel, statusClass, statusLabel } from '@/features/properties/labels';
 import type { PropertyDetail } from '@/features/properties/types';
 import { formatMoney } from '@/lib/format';
@@ -79,6 +91,11 @@ function propertyShareText(property: PropertyDetail, clientName?: string): strin
 function whatsappUrl(text: string, phone?: string | null): string {
   const number = cleanPhone(phone);
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
+}
+
+function publicPropertyUrl(code: string): string {
+  if (typeof window === 'undefined') return `/p/${code}`;
+  return `${window.location.origin}/p/${code}`;
 }
 
 function escapeHtml(value: string): string {
@@ -198,6 +215,9 @@ export default function PropertyDetailPage(): ReactNode {
   const [processingPhotos, setProcessingPhotos] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const addPhoto = useAddPropertyMedia(params.id);
+  const setCover = useSetPropertyCover(params.id);
+  const reorderMedia = useReorderPropertyMedia(params.id);
+  const deleteMedia = useDeletePropertyMedia();
 
   if (isLoading) return <p className="p-8 text-sm text-content-muted">Cargando…</p>;
   if (isError || !property)
@@ -207,6 +227,20 @@ export default function PropertyDetailPage(): ReactNode {
   const main = images[active] ?? images[0];
   const topMatches = matches?.items ?? [];
   const shareText = propertyShareText(property);
+  const publicUrl = publicPropertyUrl(property.code);
+  const busyMedia = setCover.isPending || reorderMedia.isPending || deleteMedia.isPending;
+  const moveImage = async (index: number, direction: -1 | 1): Promise<void> => {
+    const next = [...images];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    const current = next[index];
+    const targetImage = next[target];
+    if (!current || !targetImage) return;
+    next[index] = targetImage;
+    next[target] = current;
+    await reorderMedia.mutateAsync(next.map((media) => media.id));
+    setActive(target);
+  };
   const selectPhotos = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const files = event.target.files;
     event.target.value = '';
@@ -264,6 +298,20 @@ export default function PropertyDetailPage(): ReactNode {
               <MessageCircle className="h-4 w-4" />
               WhatsApp
             </a>
+          </Button>
+          <Button asChild variant="secondary" size="sm">
+            <a href={`/p/${property.code}`} target="_blank" rel="noreferrer">
+              <Globe2 className="h-4 w-4" />
+              Ver página pública
+            </a>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void navigator.clipboard?.writeText(publicUrl)}
+          >
+            <Copy className="h-4 w-4" />
+            Copiar link
           </Button>
           <Button
             variant="secondary"
@@ -323,17 +371,65 @@ export default function PropertyDetailPage(): ReactNode {
           )}
         </div>
         <div className="flex gap-3 overflow-x-auto lg:flex-col">
-          {images.slice(0, 4).map((media, index) => (
-            <button
+          {images.map((media, index) => (
+            <div
               key={media.id}
-              type="button"
-              onClick={() => setActive(index)}
               className={`relative aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-lg border lg:w-full ${
                 index === active ? 'border-brand' : 'border-border'
               }`}
             >
-              <Image src={media.url} alt="" fill className="object-cover" sizes="120px" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setActive(index)}
+                className="absolute inset-0"
+                aria-label={`Ver foto ${index + 1}`}
+              >
+                <Image src={media.url} alt="" fill className="object-cover" sizes="120px" />
+              </button>
+              {media.isCover && (
+                <span className="absolute left-1 top-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-brand-foreground">
+                  Portada
+                </span>
+              )}
+              <div className="absolute inset-x-1 bottom-1 flex justify-between gap-1">
+                <button
+                  type="button"
+                  onClick={() => void moveImage(index, -1)}
+                  disabled={busyMedia || index === 0}
+                  className="rounded bg-black/55 p-1 text-white disabled:opacity-40"
+                  aria-label="Mover foto a la izquierda"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void setCover.mutateAsync(media.id)}
+                  disabled={busyMedia || media.isCover}
+                  className="rounded bg-black/55 p-1 text-white disabled:opacity-40"
+                  aria-label="Marcar como portada"
+                >
+                  <Star className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteMedia.mutate({ propertyId: property.id, mediaId: media.id })}
+                  disabled={busyMedia}
+                  className="rounded bg-black/55 p-1 text-white disabled:opacity-40"
+                  aria-label="Eliminar foto"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void moveImage(index, 1)}
+                  disabled={busyMedia || index === images.length - 1}
+                  className="rounded bg-black/55 p-1 text-white disabled:opacity-40"
+                  aria-label="Mover foto a la derecha"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </div>

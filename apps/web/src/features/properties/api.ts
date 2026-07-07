@@ -113,6 +113,24 @@ export function useDeletePropertyMedia() {
   });
 }
 
+export function useSetPropertyCover(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (mediaId: string) =>
+      httpClient.put(`/properties/${propertyId}/media/${mediaId}/cover`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: propertyKeys.all }),
+  });
+}
+
+export function useReorderPropertyMedia(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (mediaIds: string[]) =>
+      httpClient.patch<PropertyDetail>(`/properties/${propertyId}/media/order`, { mediaIds }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: propertyKeys.all }),
+  });
+}
+
 export function useAddPropertyMedia(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
