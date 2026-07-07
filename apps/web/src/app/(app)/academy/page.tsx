@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Award,
   BookOpenCheck,
   Copy,
   GraduationCap,
@@ -79,12 +80,20 @@ export default function AcademyAdminPage(): ReactNode {
             Leads, programas y acceso simple para alumnos con email y codigo.
           </p>
         </div>
-        <Button asChild variant="secondary">
-          <Link href="/academia" target="_blank">
-            <GraduationCap className="h-4 w-4" />
-            Ver landing
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="brand">
+            <Link href="/academy/certificados">
+              <Award className="h-4 w-4" />
+              Certificados
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/academia" target="_blank">
+              <GraduationCap className="h-4 w-4" />
+              Ver landing
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">

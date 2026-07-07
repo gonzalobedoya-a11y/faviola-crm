@@ -18,7 +18,7 @@ export function Sidebar(): ReactNode {
   const initials = user ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}` : 'FV';
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface-sunken md:flex">
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface-sunken md:flex print:!hidden">
       <div className="flex h-20 items-center border-b border-border px-5">
         <BrandLockup />
       </div>

@@ -67,7 +67,7 @@ export function Header(): ReactNode {
   };
 
   return (
-    <header className="relative z-30 flex h-16 items-center gap-3 border-b border-border bg-surface px-4 md:px-6">
+    <header className="relative z-30 flex h-16 items-center gap-3 border-b border-border bg-surface px-4 md:px-6 print:hidden">
       <button
         type="button"
         aria-label={showMobileMenu ? 'Cerrar menú' : 'Abrir menú'}
