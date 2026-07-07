@@ -2,6 +2,7 @@
 
 import { Bath, Bed, Building2, MapPin, Maximize, MessageCircle, Share2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -188,6 +189,9 @@ export default function PublicPropertyPage(): ReactNode {
                 <MessageCircle className="h-5 w-5" />
                 Consultar por WhatsApp
               </a>
+            </Button>
+            <Button asChild variant="secondary" size="lg">
+              <Link href="/catalog">Ver catálogo</Link>
             </Button>
             <Button
               variant="secondary"

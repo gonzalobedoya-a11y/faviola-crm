@@ -67,6 +67,68 @@ export class PropertiesService {
     };
   }
 
+  async listPublic(query: ListPropertiesDto) {
+    const { operation, district, q, priceMin, priceMax, page, pageSize } = query;
+    const where: Prisma.PropertyWhereInput = {
+      deletedAt: null,
+      status: 'AVAILABLE',
+      publishedAt: { not: null },
+    };
+
+    if (operation) where.operation = operation;
+    if (district) where.district = { contains: district, mode: 'insensitive' };
+    if (priceMin !== undefined || priceMax !== undefined) {
+      where.price = { gte: priceMin, lte: priceMax };
+    }
+    if (q) {
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { code: { contains: q, mode: 'insensitive' } },
+        { district: { contains: q, mode: 'insensitive' } },
+        { propertyType: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.property.findMany({
+        where,
+        orderBy: { publishedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          code: true,
+          title: true,
+          description: true,
+          operation: true,
+          propertyType: true,
+          status: true,
+          price: true,
+          currency: true,
+          bedrooms: true,
+          bathrooms: true,
+          area: true,
+          address: true,
+          district: true,
+          city: true,
+          publishedAt: true,
+          createdAt: true,
+          media: {
+            where: { type: 'IMAGE' },
+            orderBy: [{ isCover: 'desc' }, { order: 'asc' }],
+            take: 3,
+          },
+        },
+      }),
+      this.prisma.property.count({ where }),
+    ]);
+
+    return {
+      items,
+      meta: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
+    };
+  }
+
   async create(tenantId: string, agentId: string, dto: CreatePropertyDto) {
     const { images, ...rest } = dto;
     const property = await this.prisma.property.create({

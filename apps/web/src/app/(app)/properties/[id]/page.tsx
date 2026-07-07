@@ -305,6 +305,12 @@ export default function PropertyDetailPage(): ReactNode {
               Ver página pública
             </a>
           </Button>
+          <Button asChild variant="secondary" size="sm">
+            <a href="/catalog" target="_blank" rel="noreferrer">
+              <Globe2 className="h-4 w-4" />
+              Catálogo
+            </a>
+          </Button>
           <Button
             variant="secondary"
             size="sm"

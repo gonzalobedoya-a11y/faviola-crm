@@ -48,6 +48,12 @@ export class PropertiesController {
   }
 
   @Public()
+  @Get('public')
+  listPublic(@Query(new ZodValidationPipe(listPropertiesSchema)) query: ListPropertiesDto) {
+    return this.properties.listPublic(query);
+  }
+
+  @Public()
   @Get('public/:code')
   getPublic(@Param('code') code: string) {
     return this.properties.getPublicByCode(code);
