@@ -358,14 +358,14 @@ function Certificado({
     <div style={rootStyle}>
       {/* Fondo de marca */}
       <Image
-        src="/brand/landing-bg.png"
+        src="/brand/certificate-bg.png"
         alt=""
         fill
         sizes="980px"
         style={{
           objectFit: 'cover',
           objectPosition: 'left center',
-          opacity: 0.58,
+          opacity: 1,
           zIndex: 0,
         }}
       />
@@ -374,7 +374,7 @@ function Certificado({
           position: 'absolute',
           inset: 0,
           background:
-            'linear-gradient(90deg, rgba(250,247,240,0.18) 0%, rgba(250,247,240,0.58) 24%, rgba(255,254,250,0.96) 43%, rgba(255,254,250,0.98) 100%)',
+            'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 24%, rgba(255,255,255,0.2) 52%, rgba(255,255,255,0.18) 100%)',
           zIndex: 0,
         }}
       />
@@ -383,7 +383,7 @@ function Certificado({
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(70% 72% at 62% 47%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.76) 45%, rgba(255,255,255,0) 73%)',
+            'radial-gradient(58% 64% at 62% 48%, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.2) 52%, rgba(255,255,255,0) 82%)',
           zIndex: 0,
         }}
       />
