@@ -26,6 +26,8 @@ const formatLabel: Record<AcademyFormat, string> = {
   TRAINING: 'Capacitacion',
 };
 
+const WHATSAPP_NUMBER = '51986445884';
+
 function academyWhatsAppUrl(form?: HTMLFormElement): string {
   const data = form ? new FormData(form) : null;
   const name = data ? String(data.get('firstName') ?? '').trim() : '';
@@ -39,7 +41,7 @@ function academyWhatsAppUrl(form?: HTMLFormElement): string {
   ]
     .filter(Boolean)
     .join('\n');
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
 }
 
 export default function AcademyPublicPage(): ReactNode {
