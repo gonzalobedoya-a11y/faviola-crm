@@ -8,6 +8,7 @@ import type {
   AddActivityDto,
   CreateClientDto,
   ListClientsDto,
+  PublicLeadDto,
   RequirementDto,
   UpdateClientDto,
 } from './dto/client.dto';
@@ -78,6 +79,54 @@ export class ClientsService {
       await this.matching.recomputeForClient(tenantId, client.id).catch(() => undefined);
     }
     return client;
+  }
+
+  async createPublicLead(dto: PublicLeadDto) {
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { slug: 'faviola-velarde', deletedAt: null },
+      select: { id: true },
+    });
+    if (!tenant) throw new NotFoundException('Cuenta no disponible');
+
+    const owner = await this.prisma.user.findFirst({
+      where: { tenantId: tenant.id, status: 'ACTIVE', deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+    if (!owner) throw new NotFoundException('Asesor no disponible');
+
+    const zones = dto.zones.map((zone) => zone.trim()).filter(Boolean);
+    const client = await this.create(tenant.id, owner.id, {
+      type: 'BUYER',
+      firstName: dto.firstName.trim(),
+      lastName: dto.lastName?.trim() || 'Lead',
+      phone: dto.phone.trim(),
+      email: dto.email || undefined,
+      source: dto.source || 'Formulario público',
+      temperature: 'HOT',
+      notes: dto.notes,
+      requirement: {
+        operation: dto.operation,
+        propertyType: dto.propertyType || undefined,
+        budgetMax: dto.budgetMax,
+        currency: dto.currency,
+        bedroomsMin: dto.bedroomsMin,
+        zones,
+        notes: dto.notes,
+      },
+    });
+
+    await this.prisma.activityLog.create({
+      data: {
+        tenantId: tenant.id,
+        clientId: client.id,
+        type: 'MESSAGE',
+        message: `Lead capturado desde ${dto.source || 'formulario público'}`,
+        actorId: owner.id,
+      },
+    });
+
+    return { id: client.id, message: 'Lead recibido. Faviola se pondrá en contacto.' };
   }
 
   async get(tenantId: string, id: string) {

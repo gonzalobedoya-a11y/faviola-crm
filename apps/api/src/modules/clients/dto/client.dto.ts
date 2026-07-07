@@ -25,6 +25,25 @@ export const createClientSchema = z.object({
   requirement: requirementSchema.optional(),
 });
 
+const optionalEmailSchema = z
+  .union([z.string().email('Correo inválido'), z.literal('')])
+  .optional();
+
+export const publicLeadSchema = z.object({
+  firstName: z.string().min(1, 'El nombre es obligatorio'),
+  lastName: z.string().optional(),
+  phone: z.string().min(6, 'El WhatsApp es obligatorio'),
+  email: optionalEmailSchema,
+  operation: z.enum(['SALE', 'RENT']).default('SALE'),
+  propertyType: z.string().optional(),
+  budgetMax: z.coerce.number().int().nonnegative().optional(),
+  currency: z.enum(['PEN', 'USD']).default('USD'),
+  bedroomsMin: z.coerce.number().int().nonnegative().optional(),
+  zones: z.array(z.string()).default([]),
+  notes: z.string().optional(),
+  source: z.string().default('Formulario público'),
+});
+
 export const updateClientSchema = createClientSchema.partial().omit({ requirement: true });
 
 export const listClientsSchema = z.object({
@@ -42,6 +61,7 @@ export const addActivitySchema = z.object({
 
 export type RequirementDto = z.infer<typeof requirementSchema>;
 export type CreateClientDto = z.infer<typeof createClientSchema>;
+export type PublicLeadDto = z.infer<typeof publicLeadSchema>;
 export type UpdateClientDto = z.infer<typeof updateClientSchema>;
 export type ListClientsDto = z.infer<typeof listClientsSchema>;
 export type AddActivityDto = z.infer<typeof addActivitySchema>;

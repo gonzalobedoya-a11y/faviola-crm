@@ -200,6 +200,118 @@ function openPropertyPdf(property: PropertyDetail): void {
   popup.document.close();
 }
 
+function openOwnerReport(property: PropertyDetail, matches: Match[]): void {
+  const images = property.media.filter((media) => media.type === 'IMAGE');
+  const docs = property.media.filter((media) => media.type === 'DOC');
+  const location = propertyLocation(property) || 'Ubicación por confirmar';
+  const ownerName = property.owner
+    ? `${property.owner.firstName} ${property.owner.lastName}`
+    : 'Propietario no asignado';
+  const publicUrl = publicPropertyUrl(property.code);
+  const topMatches = matches.slice(0, 5);
+  const popup = window.open('', '_blank', 'width=980,height=1200');
+  if (!popup) return;
+
+  popup.document.write(`<!doctype html>
+  <html lang="es">
+    <head>
+      <meta charset="utf-8" />
+      <title>${escapeHtml(property.title)} · Reporte propietario</title>
+      <style>
+        @page { size: A4; margin: 16mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; color: #241f1a; font-family: Inter, Arial, sans-serif; background: #f8f3eb; }
+        .sheet { min-height: 100vh; background: #fffaf3; padding: 30px; border: 1px solid #eadfce; }
+        .brand { display: flex; justify-content: space-between; gap: 24px; border-bottom: 1px solid #e7d8c2; padding-bottom: 18px; }
+        h1, h2, h3 { margin: 0; }
+        h1 { font-family: Georgia, serif; font-size: 30px; }
+        h2 { margin-top: 24px; font-family: Georgia, serif; font-size: 26px; }
+        .eyebrow { color: #8a6125; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+        .muted { color: #6d6256; }
+        .code { align-self: flex-start; border: 1px solid #b08a4a; color: #8a6125; padding: 8px 12px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+        .summary { margin-top: 22px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; }
+        .card { border: 1px solid #eadfce; border-radius: 18px; background: #fff; padding: 16px; }
+        .price { margin-top: 8px; font-family: Georgia, serif; font-size: 28px; color: #a77934; }
+        .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+        .metric strong { display: block; margin-top: 6px; font-size: 20px; }
+        ul { margin: 10px 0 0; padding-left: 18px; color: #40372f; line-height: 1.55; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { border-bottom: 1px solid #eadfce; padding: 10px 8px; text-align: left; }
+        th { color: #8a6125; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+        .footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid #e7d8c2; display: flex; justify-content: space-between; color: #6d6256; font-size: 12px; }
+        @media print { body { background: white; } .sheet { border: 0; padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <main class="sheet">
+        <header class="brand">
+          <div>
+            <p class="eyebrow">Reporte para propietario</p>
+            <h1>${escapeHtml(property.title)}</h1>
+            <p class="muted">${escapeHtml(location)}</p>
+          </div>
+          <div class="code">${escapeHtml(property.code)}</div>
+        </header>
+
+        <section class="summary">
+          <div class="card">
+            <p class="eyebrow">Estado comercial</p>
+            <div class="price">${escapeHtml(formatMoney(property.price, property.currency))}</div>
+            <p class="muted">${escapeHtml(operationLabel[property.operation])} · ${escapeHtml(statusLabel[property.status])}</p>
+            <p class="muted">Propietario: ${escapeHtml(ownerName)}</p>
+            <p class="muted">Link público: ${escapeHtml(publicUrl)}</p>
+          </div>
+          <div class="card">
+            <p class="eyebrow">Lectura ejecutiva</p>
+            <ul>
+              <li>Propiedad lista para compartir por catálogo y WhatsApp.</li>
+              <li>${matches.length} cliente${matches.length === 1 ? '' : 's'} compatible${matches.length === 1 ? '' : 's'} detectado${matches.length === 1 ? '' : 's'} por el CRM.</li>
+              <li>${images.length} foto${images.length === 1 ? '' : 's'} y ${docs.length} documento${docs.length === 1 ? '' : 's'} cargado${docs.length === 1 ? '' : 's'}.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="metrics">
+          <div class="card metric"><span class="muted">Fotos</span><strong>${images.length}</strong></div>
+          <div class="card metric"><span class="muted">Documentos</span><strong>${docs.length}</strong></div>
+          <div class="card metric"><span class="muted">Matches</span><strong>${matches.length}</strong></div>
+          <div class="card metric"><span class="muted">Publicada</span><strong>${property.publishedAt ? 'Sí' : 'No'}</strong></div>
+        </section>
+
+        <section class="card" style="margin-top: 18px;">
+          <p class="eyebrow">Clientes sugeridos</p>
+          ${
+            topMatches.length
+              ? `<table><thead><tr><th>Cliente</th><th>Score</th><th>Motivo</th></tr></thead><tbody>${topMatches
+                  .map(
+                    (match) =>
+                      `<tr><td>${escapeHtml(`${match.client.firstName} ${match.client.lastName}`)}</td><td>${match.score}%</td><td>${escapeHtml(match.reasons.join(' · ') || 'Coincidencia por requisitos')}</td></tr>`,
+                  )
+                  .join('')}</tbody></table>`
+              : '<p class="muted">Aún no hay clientes compatibles. Se recomienda completar requisitos de compradores y recalcular matches.</p>'
+          }
+        </section>
+
+        <section class="card" style="margin-top: 18px;">
+          <p class="eyebrow">Recomendaciones</p>
+          <ul>
+            <li>Mantener portada y galería actualizadas antes de campañas.</li>
+            <li>Contactar primero a los clientes con mayor compatibilidad.</li>
+            <li>Compartir este reporte después de cada ronda de difusión o visitas.</li>
+          </ul>
+        </section>
+
+        <footer class="footer">
+          <span>Generado desde Faviola CRM</span>
+          <span>${escapeHtml(new Date().toLocaleDateString('es-PE'))}</span>
+        </footer>
+      </main>
+      <script>window.addEventListener('load', () => setTimeout(() => window.print(), 350));</script>
+    </body>
+  </html>`);
+  popup.document.close();
+}
+
 export default function PropertyDetailPage(): ReactNode {
   const params = useParams<{ id: string }>();
   const { data: property, isLoading, isError } = useProperty(params.id);
@@ -292,6 +404,14 @@ export default function PropertyDetailPage(): ReactNode {
           <Button variant="secondary" size="sm" onClick={() => openPropertyPdf(property)}>
             <FileText className="h-4 w-4" />
             Ficha PDF
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => openOwnerReport(property, topMatches)}
+          >
+            <FileText className="h-4 w-4" />
+            Reporte propietario
           </Button>
           <Button asChild variant="secondary" size="sm">
             <a href={whatsappUrl(shareText)} target="_blank" rel="noreferrer">
@@ -529,6 +649,8 @@ export default function PropertyDetailPage(): ReactNode {
         </div>
       </div>
 
+      <PropertyAuditPanel property={property} matches={topMatches} />
+
       <CompatibleClientsPanel
         matches={topMatches}
         property={property}
@@ -538,6 +660,94 @@ export default function PropertyDetailPage(): ReactNode {
         onMarkSent={(match) => updateMatch.mutate({ id: match.id, status: 'SENT' })}
       />
     </div>
+  );
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return 'Pendiente';
+  return new Intl.DateTimeFormat('es-PE', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function PropertyAuditPanel({
+  property,
+  matches,
+}: {
+  property: PropertyDetail;
+  matches: Match[];
+}): ReactNode {
+  const images = property.media.filter((media) => media.type === 'IMAGE');
+  const docs = property.media.filter((media) => media.type === 'DOC');
+  const events = [
+    {
+      title: 'Propiedad registrada',
+      description: `Código ${property.code} creado en el CRM.`,
+      date: formatDateTime(property.createdAt),
+      tone: 'border-brand text-brand-deep',
+    },
+    {
+      title: property.publishedAt ? 'Publicada para difusión' : 'Pendiente de publicación',
+      description: property.publishedAt
+        ? 'Disponible en la página pública y el catálogo.'
+        : 'Publica la propiedad para activar su vitrina pública.',
+      date: formatDateTime(property.publishedAt),
+      tone: property.publishedAt ? 'border-success text-success' : 'border-warning text-warning',
+    },
+    {
+      title: 'Material visual',
+      description: `${images.length} foto${images.length === 1 ? '' : 's'} cargada${images.length === 1 ? '' : 's'} para la galería.`,
+      date: images.length ? 'Activo' : 'Sin fotos',
+      tone: images.length ? 'border-success text-success' : 'border-danger text-danger',
+    },
+    {
+      title: 'Expediente documental',
+      description: `${docs.length} documento${docs.length === 1 ? '' : 's'} asociado${docs.length === 1 ? '' : 's'} a la propiedad.`,
+      date: docs.length ? 'Con respaldo' : 'Pendiente',
+      tone: docs.length ? 'border-success text-success' : 'border-border text-content-muted',
+    },
+    {
+      title: 'Inteligencia comercial',
+      description: `${matches.length} cliente${matches.length === 1 ? '' : 's'} compatible${matches.length === 1 ? '' : 's'} detectado${matches.length === 1 ? '' : 's'}.`,
+      date: matches.length ? 'Listo para contacto' : 'Recalcular',
+      tone: matches.length ? 'border-brand text-brand-deep' : 'border-border text-content-muted',
+    },
+  ];
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl text-content">Auditoría comercial</h2>
+          <p className="mt-1 text-sm text-content-muted">
+            Historial resumido para saber si la propiedad está lista para difusión y seguimiento.
+          </p>
+        </div>
+        <Badge className="border-brand text-brand-deep">Timeline operativo</Badge>
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        {events.map((event, index) => (
+          <article
+            key={event.title}
+            className="grid gap-3 rounded-xl border border-border bg-surface-sunken p-4 sm:grid-cols-[auto_1fr_auto] sm:items-center"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand/10 text-sm font-semibold text-brand-deep">
+              {index + 1}
+            </span>
+            <div>
+              <h3 className="font-semibold text-content">{event.title}</h3>
+              <p className="mt-1 text-sm text-content-muted">{event.description}</p>
+            </div>
+            <Badge className={event.tone}>{event.date}</Badge>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

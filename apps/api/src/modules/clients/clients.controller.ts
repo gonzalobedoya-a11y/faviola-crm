@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import type { JwtPayload } from '../auth/auth.types';
 
@@ -14,6 +15,8 @@ import {
   createClientSchema,
   type ListClientsDto,
   listClientsSchema,
+  type PublicLeadDto,
+  publicLeadSchema,
   type RequirementDto,
   requirementSchema,
   type UpdateClientDto,
@@ -42,6 +45,12 @@ export class ClientsController {
     @Body(new ZodValidationPipe(createClientSchema)) dto: CreateClientDto,
   ) {
     return this.clients.create(user.tenantId, user.sub, dto);
+  }
+
+  @Public()
+  @Post('public-leads')
+  createPublicLead(@Body(new ZodValidationPipe(publicLeadSchema)) dto: PublicLeadDto) {
+    return this.clients.createPublicLead(dto);
   }
 
   @Get(':id')

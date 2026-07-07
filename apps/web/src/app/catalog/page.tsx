@@ -100,12 +100,17 @@ export default function PublicCatalogPage(): ReactNode {
                 presupuesto y comparte la ficha ideal.
               </p>
             </div>
-            <Button asChild variant="brand">
-              <a href={whatsappCatalogUrl()} target="_blank" rel="noreferrer">
-                <MessageCircle className="h-4 w-4" />
-                Pedir asesoría
-              </a>
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild variant="secondary">
+                <Link href="/lead">Dejar mis datos</Link>
+              </Button>
+              <Button asChild variant="brand">
+                <a href={whatsappCatalogUrl()} target="_blank" rel="noreferrer">
+                  <MessageCircle className="h-4 w-4" />
+                  Pedir asesoría
+                </a>
+              </Button>
+            </div>
           </div>
         </header>
 

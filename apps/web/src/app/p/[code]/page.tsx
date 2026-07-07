@@ -193,6 +193,9 @@ export default function PublicPropertyPage(): ReactNode {
             <Button asChild variant="secondary" size="lg">
               <Link href="/catalog">Ver catálogo</Link>
             </Button>
+            <Button asChild variant="secondary" size="lg">
+              <Link href="/lead">Quiero que me contacten</Link>
+            </Button>
             <Button
               variant="secondary"
               size="lg"
