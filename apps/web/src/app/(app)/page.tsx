@@ -2,11 +2,14 @@
 
 import {
   ArrowRight,
+  AlertTriangle,
   Building2,
   CalendarDays,
+  FileText,
   Plus,
   Sparkles,
   TrendingUp,
+  UserRoundCheck,
   Users,
   Wallet,
   type LucideIcon,
@@ -72,23 +75,36 @@ export default function DashboardPage(): ReactNode {
   const quickStats: { icon: LucideIcon; value: number; label: string; sub: string }[] = [
     { icon: Users, value: qs?.followUps ?? 0, label: 'clientes', sub: 'esperan seguimiento' },
     {
+      icon: AlertTriangle,
+      value: qs?.overdueVisits ?? 0,
+      label: 'visitas vencidas',
+      sub: 'requieren cierre',
+    },
+    {
       icon: Sparkles,
       value: qs?.newMatches ?? 0,
       label: 'nuevas coincidencias',
       sub: 'para tus clientes',
     },
     { icon: CalendarDays, value: qs?.visitsToday ?? 0, label: 'visitas', sub: 'para hoy' },
-    { icon: TrendingUp, value: qs?.dealsClosing ?? 0, label: 'negociaciones', sub: 'por cerrar' },
+    { icon: Users, value: qs?.hotClients ?? 0, label: 'clientes hot', sub: 'alta prioridad' },
   ];
 
   const kpis: { icon: LucideIcon; value: string | number; label: string; delta?: number }[] = [
     { icon: Users, value: counts?.clients ?? 0, label: 'Clientes', delta: data?.deltas.clients },
+    { icon: UserRoundCheck, value: counts?.owners ?? 0, label: 'Propietarios' },
     {
       icon: Building2,
       value: counts?.properties ?? 0,
       label: 'Propiedades',
       delta: data?.deltas.properties,
     },
+    {
+      icon: Building2,
+      value: counts?.availableProperties ?? 0,
+      label: 'Disponibles',
+    },
+    { icon: FileText, value: counts?.documents ?? 0, label: 'Documentos' },
     {
       icon: Sparkles,
       value: counts?.matches ?? 0,
@@ -197,9 +213,9 @@ export default function DashboardPage(): ReactNode {
       )}
 
       {/* KPIs */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-8">
         {isLoading
-          ? Array.from({ length: 5 }).map((_, index) => <SkeletonCard key={index} />)
+          ? Array.from({ length: 8 }).map((_, index) => <SkeletonCard key={index} />)
           : kpis.map((kpi) => {
               const Icon = kpi.icon;
               return (

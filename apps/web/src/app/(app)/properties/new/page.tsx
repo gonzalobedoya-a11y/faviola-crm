@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useClients } from '@/features/clients/api';
 import { useCreateProperty } from '@/features/properties/api';
 import { ApiError } from '@/lib/api/errors';
 import { compressPropertyImages } from '@/lib/images';
@@ -36,6 +37,7 @@ const schema = z.object({
   district: z.string().optional(),
   city: z.string().optional(),
   address: z.string().optional(),
+  ownerClientId: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -48,6 +50,7 @@ const labelClass = 'mb-1.5 block text-sm font-medium text-content';
 export default function NewPropertyPage(): ReactNode {
   const router = useRouter();
   const createProperty = useCreateProperty();
+  const { data: sellers } = useClients({ type: 'SELLER' });
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [processingImages, setProcessingImages] = useState(false);
@@ -63,7 +66,11 @@ export default function NewPropertyPage(): ReactNode {
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
     try {
-      const property = await createProperty.mutateAsync({ ...values, images });
+      const property = await createProperty.mutateAsync({
+        ...values,
+        ownerClientId: values.ownerClientId || undefined,
+        images,
+      });
       router.push(`/properties/${property.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo crear la propiedad');
@@ -207,6 +214,24 @@ export default function NewPropertyPage(): ReactNode {
             Dirección
           </label>
           <Input id="address" placeholder="Av. Ejemplo 123" {...register('address')} />
+        </div>
+
+        <div>
+          <label htmlFor="ownerClientId" className={labelClass}>
+            Propietario / captador
+          </label>
+          <select id="ownerClientId" className={fieldClass} {...register('ownerClientId')}>
+            <option value="">Sin propietario asociado</option>
+            {sellers?.items.map((seller) => (
+              <option key={seller.id} value={seller.id}>
+                {seller.firstName} {seller.lastName}
+                {seller.phone ? ` · ${seller.phone}` : ''}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-content-muted">
+            Registra vendedores en Clientes para asignarlos como propietarios.
+          </p>
         </div>
 
         <div>

@@ -53,7 +53,10 @@ export class PropertiesService {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: { media: { orderBy: [{ isCover: 'desc' }, { order: 'asc' }] } },
+        include: {
+          media: { orderBy: [{ isCover: 'desc' }, { order: 'asc' }] },
+          owner: { select: { id: true, firstName: true, lastName: true, phone: true } },
+        },
       }),
       this.prisma.property.count({ where }),
     ]);
@@ -83,7 +86,10 @@ export class PropertiesService {
             }
           : undefined,
       },
-      include: { media: { orderBy: [{ isCover: 'desc' }, { order: 'asc' }] } },
+      include: {
+        media: { orderBy: [{ isCover: 'desc' }, { order: 'asc' }] },
+        owner: { select: { id: true, firstName: true, lastName: true, phone: true } },
+      },
     });
 
     // Matching inverso: al publicar una propiedad, busca compradores que encajen.
@@ -96,7 +102,7 @@ export class PropertiesService {
       where: { id, tenantId, deletedAt: null },
       include: {
         media: { orderBy: [{ isCover: 'desc' }, { order: 'asc' }] },
-        owner: { select: { id: true, firstName: true, lastName: true } },
+        owner: { select: { id: true, firstName: true, lastName: true, phone: true } },
         agent: { select: { firstName: true, lastName: true } },
       },
     });

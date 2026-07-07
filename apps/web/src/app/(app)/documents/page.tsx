@@ -1,6 +1,14 @@
 'use client';
 
-import { Building2, ExternalLink, FileText, Trash2, Upload } from 'lucide-react';
+import {
+  Building2,
+  CheckCircle2,
+  ExternalLink,
+  FileText,
+  ShieldCheck,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState, type ReactNode } from 'react';
 
@@ -12,56 +20,88 @@ import {
 } from '@/features/properties/api';
 import type { Property, PropertyMedia } from '@/features/properties/types';
 
-interface DocumentRow {
+const requiredDocs = [
+  'DNI propietario',
+  'Partida registral',
+  'HR / PU',
+  'Contrato',
+  'Ficha técnica',
+];
+
+interface PropertyDossier {
   property: Property;
-  media: PropertyMedia;
+  docs: PropertyMedia[];
+}
+
+function fileName(url: string): string {
+  try {
+    return decodeURIComponent(new URL(url).pathname.split('/').pop() ?? 'Documento');
+  } catch {
+    return 'Documento';
+  }
+}
+
+function completion(docs: PropertyMedia[]): number {
+  return Math.min(100, Math.round((docs.length / requiredDocs.length) * 100));
 }
 
 export default function DocumentsPage(): ReactNode {
   const { data, isLoading, isError } = useProperties({});
   const [propertyId, setPropertyId] = useState('');
   const [documentUrl, setDocumentUrl] = useState('');
+  const [docLabel, setDocLabel] = useState('DNI propietario');
   const [message, setMessage] = useState<string | null>(null);
   const addDocument = useAddPropertyMedia(propertyId);
   const remove = useDeletePropertyMedia();
 
-  const documents = useMemo<DocumentRow[]>(
+  const dossiers = useMemo<PropertyDossier[]>(
     () =>
-      (data?.items ?? []).flatMap((property) =>
-        property.media
-          .filter((media) => media.type === 'DOC')
-          .map((media) => ({ property, media })),
-      ),
+      (data?.items ?? []).map((property) => ({
+        property,
+        docs: property.media.filter((media) => media.type === 'DOC'),
+      })),
     [data],
   );
+  const documents = dossiers.flatMap((dossier) =>
+    dossier.docs.map((media) => ({ property: dossier.property, media })),
+  );
+  const completeDossiers = dossiers.filter((dossier) => completion(dossier.docs) >= 80).length;
 
   const submit = async (): Promise<void> => {
     if (!propertyId || !documentUrl.trim()) return;
     setMessage(null);
     try {
-      await addDocument.mutateAsync({ url: documentUrl.trim(), type: 'DOC' });
+      const separator = documentUrl.includes('#') ? '&' : '#';
+      const urlWithLabel = `${documentUrl.trim()}${separator}tipo=${encodeURIComponent(docLabel)}`;
+      await addDocument.mutateAsync({ url: urlWithLabel, type: 'DOC' });
       setDocumentUrl('');
       setMessage('Documento guardado correctamente.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'No se pudo subir el documento.');
+      setMessage(error instanceof Error ? error.message : 'No se pudo guardar el documento.');
     }
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div>
-        <h1 className="font-display text-3xl text-content">Documentos</h1>
+        <h1 className="font-display text-3xl text-content">Expedientes y documentos</h1>
         <p className="mt-1 text-sm text-content-muted">
-          Centraliza contratos, fichas y archivos asociados a tus propiedades.
+          Controla documentos clave por propiedad antes de negociar o cerrar.
         </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Metric label="Propiedades" value={dossiers.length} />
+        <Metric label="Documentos" value={documents.length} />
+        <Metric label="Expedientes avanzados" value={completeDossiers} />
       </div>
 
       <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1">
         <div className="flex items-center gap-2">
           <Upload className="h-5 w-5 text-brand" />
-          <h2 className="font-semibold text-content">Subir documento</h2>
+          <h2 className="font-semibold text-content">Agregar documento</h2>
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+        <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_0.8fr_1fr_auto]">
           <select
             value={propertyId}
             onChange={(event) => setPropertyId(event.target.value)}
@@ -75,11 +115,23 @@ export default function DocumentsPage(): ReactNode {
               </option>
             ))}
           </select>
+          <select
+            value={docLabel}
+            onChange={(event) => setDocLabel(event.target.value)}
+            aria-label="Tipo de documento"
+            className="h-11 rounded-md border border-border bg-surface px-3 text-sm text-content"
+          >
+            {requiredDocs.map((doc) => (
+              <option key={doc} value={doc}>
+                {doc}
+              </option>
+            ))}
+          </select>
           <input
             type="url"
             value={documentUrl}
             onChange={(event) => setDocumentUrl(event.target.value)}
-            placeholder="https://.../contrato.pdf"
+            placeholder="https://.../documento.pdf"
             aria-label="URL pública del documento"
             className="h-11 rounded-md border border-border bg-surface px-3 text-sm text-content focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
@@ -92,91 +144,133 @@ export default function DocumentsPage(): ReactNode {
           </Button>
         </div>
         {message && <p className="mt-3 text-sm text-content-secondary">{message}</p>}
-        <p className="mt-3 text-xs text-content-muted">
-          Usa un enlace público de Google Drive, Dropbox u otro repositorio seguro.
-        </p>
-        {data && data.items.length === 0 && (
-          <p className="mt-3 text-sm text-content-muted">
-            Primero crea una propiedad para poder asociarle documentos.
-          </p>
-        )}
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-border bg-surface-raised shadow-elevation-1">
-        <div className="border-b border-border px-5 py-4">
-          <h2 className="font-semibold text-content">Biblioteca</h2>
-          <p className="mt-0.5 text-xs text-content-muted">{documents.length} archivos</p>
-        </div>
-        {isLoading ? (
-          <p className="p-10 text-center text-sm text-content-muted">Cargando documentos…</p>
-        ) : isError ? (
-          <p className="p-10 text-center text-sm text-danger">
-            No se pudieron cargar los documentos.
+      {isLoading ? (
+        <p className="py-16 text-center text-sm text-content-muted">Cargando expedientes…</p>
+      ) : isError ? (
+        <p className="py-16 text-center text-sm text-danger">
+          No se pudieron cargar los documentos.
+        </p>
+      ) : dossiers.length === 0 ? (
+        <div className="rounded-xl border border-border bg-surface-raised p-12 text-center">
+          <FileText className="mx-auto h-8 w-8 text-content-muted" />
+          <p className="mt-3 font-medium text-content">Aún no hay propiedades</p>
+          <p className="mt-1 text-sm text-content-muted">
+            Crea una propiedad para armar su expediente.
           </p>
-        ) : documents.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 p-12 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-tint text-brand-deep">
-              <FileText className="h-6 w-6" />
-            </span>
-            <div>
-              <p className="font-medium text-content">Aún no hay documentos</p>
-              <p className="mt-1 text-sm text-content-muted">
-                Sube el primer archivo desde el formulario.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <ul className="divide-y divide-border">
-            {documents.map(({ property, media }) => (
-              <li key={media.id} className="flex items-center gap-4 px-5 py-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-brand-deep">
-                  <FileText className="h-5 w-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-content">{fileName(media.url)}</p>
-                  <Link
-                    href={`/properties/${property.id}`}
-                    className="mt-0.5 flex items-center gap-1 truncate text-xs text-content-muted hover:text-brand-deep"
-                  >
-                    <Building2 className="h-3 w-3" />
-                    {property.code} · {property.title}
-                  </Link>
-                </div>
-                <a
-                  href={media.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Abrir ${fileName(media.url)}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-md text-content-muted hover:bg-surface-sunken hover:text-content"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-                <button
-                  type="button"
-                  aria-label={`Eliminar ${fileName(media.url)}`}
-                  disabled={remove.isPending}
-                  onClick={() => {
-                    if (window.confirm('¿Eliminar este documento?')) {
-                      remove.mutate({ propertyId: property.id, mediaId: media.id });
-                    }
-                  }}
-                  className="flex h-9 w-9 items-center justify-center rounded-md text-content-muted hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {dossiers.map((dossier) => (
+            <DossierCard
+              key={dossier.property.id}
+              dossier={dossier}
+              onDelete={(mediaId) => remove.mutate({ propertyId: dossier.property.id, mediaId })}
+              deleting={remove.isPending}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function fileName(url: string): string {
-  try {
-    return decodeURIComponent(new URL(url).pathname.split('/').pop() ?? 'Documento');
-  } catch {
-    return 'Documento';
-  }
+function Metric({ label, value }: { label: string; value: number }): ReactNode {
+  return (
+    <div className="rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1">
+      <p className="font-display text-3xl text-content">{value}</p>
+      <p className="text-xs font-medium uppercase tracking-[0.16em] text-content-muted">{label}</p>
+    </div>
+  );
+}
+
+function DossierCard({
+  dossier,
+  onDelete,
+  deleting,
+}: {
+  dossier: PropertyDossier;
+  onDelete: (mediaId: string) => void;
+  deleting: boolean;
+}): ReactNode {
+  const pct = completion(dossier.docs);
+  const labels = dossier.docs.map((doc) => fileName(doc.url).toLowerCase());
+
+  return (
+    <article className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <Link
+            href={`/properties/${dossier.property.id}`}
+            className="flex items-center gap-2 font-semibold text-content hover:text-brand-deep"
+          >
+            <Building2 className="h-4 w-4" />
+            <span className="truncate">{dossier.property.title}</span>
+          </Link>
+          <p className="mt-1 text-xs text-content-muted">
+            {dossier.property.code} · {dossier.docs.length} documento
+            {dossier.docs.length === 1 ? '' : 's'}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="font-semibold text-content">{pct}%</p>
+          <p className="text-xs text-content-muted">completo</p>
+        </div>
+      </div>
+
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-sunken">
+        <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {requiredDocs.map((doc) => {
+          const present = labels.some((label) => label.includes(doc.toLowerCase().slice(0, 5)));
+          return (
+            <div key={doc} className="flex items-center gap-2 text-xs text-content-muted">
+              {present ? (
+                <CheckCircle2 className="h-4 w-4 text-success" />
+              ) : (
+                <ShieldCheck className="h-4 w-4 text-content-muted" />
+              )}
+              {doc}
+            </div>
+          );
+        })}
+      </div>
+
+      {dossier.docs.length > 0 && (
+        <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+          {dossier.docs.map((media) => (
+            <li key={media.id} className="flex items-center gap-3 px-3 py-2">
+              <FileText className="h-4 w-4 shrink-0 text-brand-deep" />
+              <span className="min-w-0 flex-1 truncate text-sm text-content">
+                {fileName(media.url)}
+              </span>
+              <a
+                href={media.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-content-muted hover:text-content"
+                aria-label="Abrir documento"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  if (window.confirm('¿Eliminar este documento?')) onDelete(media.id);
+                }}
+                className="text-content-muted hover:text-danger disabled:opacity-50"
+                aria-label="Eliminar documento"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
 }

@@ -18,13 +18,18 @@ export class DashboardService {
 
     const [
       clientsCount,
+      ownersCount,
       propertiesCount,
+      availableProperties,
+      documentsCount,
       matchesCount,
       dealsAgg,
       followUps,
       newMatchesCount,
       visitsToday,
+      overdueVisits,
       dealsClosing,
+      hotClients,
       agendaVisits,
       topMatches,
       pipelineGroups,
@@ -34,7 +39,16 @@ export class DashboardService {
       matchesNew,
     ] = await Promise.all([
       this.prisma.client.count({ where: { tenantId, deletedAt: null } }),
+      this.prisma.client.count({
+        where: { tenantId, deletedAt: null, type: { in: ['SELLER', 'BOTH'] } },
+      }),
       this.prisma.property.count({ where: { tenantId, deletedAt: null } }),
+      this.prisma.property.count({
+        where: { tenantId, deletedAt: null, status: 'AVAILABLE' },
+      }),
+      this.prisma.propertyMedia.count({
+        where: { type: 'DOC', property: { tenantId, deletedAt: null } },
+      }),
       this.prisma.match.count({ where: { tenantId } }),
       this.prisma.deal.aggregate({
         where: { tenantId, deletedAt: null, stage: { in: [...ACTIVE_STAGES] } },
@@ -56,7 +70,13 @@ export class DashboardService {
           scheduledAt: { gte: startOfToday, lt: endOfToday },
         },
       }),
+      this.prisma.visit.count({
+        where: { tenantId, status: 'SCHEDULED', scheduledAt: { lt: now } },
+      }),
       this.prisma.deal.count({ where: { tenantId, deletedAt: null, stage: 'CLOSING' } }),
+      this.prisma.client.count({
+        where: { tenantId, deletedAt: null, temperature: 'HOT' },
+      }),
       this.prisma.visit.findMany({
         where: { tenantId, scheduledAt: { gte: startOfToday, lt: endOfToday } },
         orderBy: { scheduledAt: 'asc' },
@@ -109,7 +129,10 @@ export class DashboardService {
     return {
       counts: {
         clients: clientsCount,
+        owners: ownersCount,
         properties: propertiesCount,
+        availableProperties,
+        documents: documentsCount,
         matches: matchesCount,
         deals: dealsAgg._count,
         pipelineValue: dealsAgg._sum.value ?? 0,
@@ -123,7 +146,9 @@ export class DashboardService {
         followUps,
         newMatches: newMatchesCount,
         visitsToday,
+        overdueVisits,
         dealsClosing,
+        hotClients,
       },
       agenda: agendaVisits.map((visit) => ({
         id: visit.id,

@@ -5,7 +5,10 @@ import { httpClient } from '@/lib/api/http';
 export interface DashboardData {
   counts: {
     clients: number;
+    owners: number;
     properties: number;
+    availableProperties: number;
+    documents: number;
     matches: number;
     deals: number;
     pipelineValue: number;
@@ -19,7 +22,9 @@ export interface DashboardData {
     followUps: number;
     newMatches: number;
     visitsToday: number;
+    overdueVisits: number;
     dealsClosing: number;
+    hotClients: number;
   };
   agenda: { id: string; time: string; client: string; property: string | null }[];
   matches: {

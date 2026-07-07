@@ -31,10 +31,10 @@ export interface Property {
   publishedAt?: string | null;
   createdAt: string;
   media: PropertyMedia[];
+  owner?: { id: string; firstName: string; lastName: string; phone?: string | null } | null;
 }
 
 export interface PropertyDetail extends Property {
-  owner?: { id: string; firstName: string; lastName: string } | null;
   agent?: { firstName: string; lastName: string };
 }
 
@@ -64,5 +64,6 @@ export interface CreatePropertyInput {
   address?: string;
   district?: string;
   city?: string;
+  ownerClientId?: string;
   images?: string[];
 }
