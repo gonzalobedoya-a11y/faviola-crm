@@ -31,21 +31,31 @@ const formatLabel: Record<AcademyFormat, string> = {
 
 const WHATSAPP_NUMBER = '51986445884';
 
-const videoSlots = [
+const reelSlots = [
   {
-    title: 'Clase practica',
-    description: 'Fragmentos de talleres, charlas o asesorias de Faviola.',
-    src: '/brand/academy-videos/video-1.mp4',
+    title: 'Reel destacado 1',
+    description: 'Contenido corto de Faviola para conectar con vendedores y futuros alumnos.',
+    src: '/brand/academy-reels/reel-1.mp4',
   },
   {
-    title: 'Consejos para vendedores',
-    description: 'Videos cortos para redes sociales y contenido educativo.',
-    src: '/brand/academy-videos/video-2.mp4',
+    title: 'Reel destacado 2',
+    description: 'Tips, presencia en cámara y mensajes comerciales para redes sociales.',
+    src: '/brand/academy-reels/reel-2.mp4',
   },
   {
-    title: 'Capacitaciones y testimonios',
-    description: 'Material de confianza para mostrar experiencia y cercania.',
-    src: '/brand/academy-videos/video-3.mp4',
+    title: 'Reel destacado 3',
+    description: 'Ideas prácticas para captar, asesorar y comunicar con más seguridad.',
+    src: '/brand/academy-reels/reel-3.mp4',
+  },
+  {
+    title: 'Reel destacado 4',
+    description: 'Momentos de marca personal y contenido educativo de Faviola Velarde.',
+    src: '/brand/academy-reels/reel-4.mp4',
+  },
+  {
+    title: 'Reel destacado 5',
+    description: 'Contenido social para generar confianza antes de pedir información.',
+    src: '/brand/academy-reels/reel-5.mp4',
   },
 ];
 
@@ -137,7 +147,7 @@ export default function AcademyPublicPage(): ReactNode {
             className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl border border-[#cfae7e] bg-white/72 px-5 text-sm font-semibold text-[#8a6125] shadow-[0_14px_35px_rgba(36,31,26,0.08)] backdrop-blur transition hover:bg-white"
           >
             <Video className="h-4 w-4" />
-            Ver videos de Faviola
+            Ver reels destacados
           </button>
         </div>
 
@@ -259,9 +269,9 @@ export default function AcademyPublicPage(): ReactNode {
           <section className="w-full max-w-5xl overflow-hidden rounded-[28px] border border-[#d9cbb7] bg-[#fffaf4] shadow-[0_30px_90px_rgba(0,0,0,0.28)]">
             <div className="flex items-center justify-between border-b border-[#eadfce] bg-[#17191a] px-5 py-4 text-white">
               <div>
-                <p className="font-display text-3xl">Videos de Faviola</p>
+                <p className="font-display text-3xl">Reels destacados de Instagram</p>
                 <p className="mt-1 text-sm text-[#d0a559]">
-                  Reels, clases cortas y contenido de redes sociales.
+                  Cinco videos cortos para mostrar la voz, estilo y experiencia de Faviola.
                 </p>
               </div>
               <button
@@ -274,8 +284,8 @@ export default function AcademyPublicPage(): ReactNode {
               </button>
             </div>
 
-            <div className="grid gap-4 p-5 md:grid-cols-3">
-              {videoSlots.map((video, index) => (
+            <div className="grid max-h-[78vh] gap-4 overflow-y-auto p-5 sm:grid-cols-2 lg:grid-cols-5">
+              {reelSlots.map((video, index) => (
                 <article
                   key={video.src}
                   className="overflow-hidden rounded-2xl border border-[#eadfce] bg-white shadow-[0_16px_45px_rgba(36,31,26,0.08)]"
@@ -286,7 +296,7 @@ export default function AcademyPublicPage(): ReactNode {
                         <Video className="h-10 w-10 text-[#d0a559]" />
                         <p className="mt-4 text-sm font-semibold">Pendiente de subir</p>
                         <p className="mt-2 text-xs leading-5 text-white/65">
-                          Guarda el archivo como video-{index + 1}.mp4 y lo publicamos aqui.
+                          Guarda el archivo como reel-{index + 1}.mp4 y lo publicamos aqui.
                         </p>
                       </div>
                     ) : (
@@ -310,7 +320,7 @@ export default function AcademyPublicPage(): ReactNode {
                     <p className="text-sm font-semibold text-[#171512]">{video.title}</p>
                     <p className="mt-1 text-xs leading-5 text-[#655b50]">{video.description}</p>
                     <p className="mt-3 rounded-lg bg-[#f7f2ea] px-3 py-2 text-xs text-[#8a6125]">
-                      Archivo esperado: video-{index + 1}.mp4
+                      Reel {index + 1} · Instagram
                     </p>
                   </div>
                 </article>
