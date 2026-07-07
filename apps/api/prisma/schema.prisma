@@ -49,6 +49,10 @@ model Tenant {
   properties Property[]
   deals      Deal[]
   visits     Visit[]
+  academyPrograms AcademyProgram[]
+  academyLeads    AcademyLead[]
+  academyStudents AcademyStudent[]
+  academyEnrollments AcademyEnrollment[]
 
   @@map("tenants")
 }
@@ -447,4 +451,114 @@ model Visit {
   @@index([tenantId, scheduledAt])
   @@index([tenantId, status])
   @@map("visits")
+}
+
+enum AcademyFormat {
+  WORKSHOP
+  TALK
+  TRAINING
+}
+
+enum AcademyProgramStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum AcademyLeadStatus {
+  NEW
+  CONTACTED
+  ENROLLED
+  DISCARDED
+}
+
+enum AcademyStudentStatus {
+  ACTIVE
+  PAUSED
+}
+
+model AcademyProgram {
+  id          String               @id @default(uuid())
+  tenantId    String
+  title       String
+  format      AcademyFormat
+  description String?
+  modality    String               @default("En vivo")
+  audience    String?
+  startsAt    DateTime?
+  duration    String?
+  capacity    Int?
+  status      AcademyProgramStatus @default(OPEN)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leads       AcademyLead[]
+  enrollments AcademyEnrollment[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, format])
+  @@map("academy_programs")
+}
+
+model AcademyLead {
+  id              String            @id @default(uuid())
+  tenantId        String
+  programId       String?
+  firstName       String
+  lastName        String?
+  phone           String
+  email           String?
+  formatInterest  AcademyFormat?
+  experienceLevel String?
+  objective       String?
+  source          String            @default("Landing Academia FV")
+  status          AcademyLeadStatus @default(NEW)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  program AcademyProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@map("academy_leads")
+}
+
+model AcademyStudent {
+  id         String               @id @default(uuid())
+  tenantId   String
+  firstName  String
+  lastName   String?
+  phone      String?
+  email      String
+  accessCode String
+  status     AcademyStudentStatus @default(ACTIVE)
+  notes      String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments AcademyEnrollment[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId, status])
+  @@map("academy_students")
+}
+
+model AcademyEnrollment {
+  id        String   @id @default(uuid())
+  tenantId  String
+  studentId String
+  programId String
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student AcademyStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  program AcademyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, programId])
+  @@index([tenantId, programId])
+  @@map("academy_enrollments")
 }

@@ -9,6 +9,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './database/prisma.module';
+import { AcademyModule } from './modules/academy/academy.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -44,6 +45,7 @@ import { VisitsModule } from './modules/visits/visits.module';
     MatchingModule,
     DealsModule,
     VisitsModule,
+    AcademyModule,
     DashboardModule,
     HealthModule,
   ],

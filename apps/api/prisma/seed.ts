@@ -26,6 +26,9 @@ const PERMISSIONS: Array<[string, string]> = [
   ['documents.create', 'Subir documentos'],
   ['documents.update', 'Editar documentos'],
   ['reports.read', 'Ver reportes'],
+  ['academy.read', 'Ver Academia FV'],
+  ['academy.create', 'Crear programas y alumnos de Academia FV'],
+  ['academy.update', 'Editar Academia FV'],
   ['users.manage', 'Gestionar usuarios'],
   ['roles.manage', 'Gestionar roles'],
   ['settings.manage', 'Gestionar configuración'],
@@ -59,6 +62,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'documents.create',
     'documents.update',
     'reports.read',
+    'academy.read',
+    'academy.create',
+    'academy.update',
     'ai.use',
   ],
   ASISTENTE: [
@@ -73,6 +79,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'documents.read',
     'documents.create',
     'documents.update',
+    'academy.read',
+    'academy.create',
+    'academy.update',
     'ai.use',
   ],
 };
@@ -142,10 +151,53 @@ async function main(): Promise<void> {
     });
   }
 
+  // 5) Programas base de Academia FV
+  const starterPrograms = [
+    {
+      title: 'Taller práctico para vendedores inmobiliarios',
+      format: 'WORKSHOP' as const,
+      description:
+        'Sesión aplicada para ordenar prospección, seguimiento y argumentos de venta con casos reales.',
+      modality: 'En vivo',
+      audience: 'Vendedores independientes y asesores que quieren mejorar cierre y seguimiento.',
+      duration: '2 horas',
+    },
+    {
+      title: 'Charla de captación inmobiliaria',
+      format: 'TALK' as const,
+      description:
+        'Charla introductoria para aprender cómo captar propietarios, generar confianza y pedir referidos.',
+      modality: 'Online o presencial',
+      audience: 'Personas que quieren empezar o reactivar su cartera inmobiliaria.',
+      duration: '60 minutos',
+    },
+    {
+      title: 'Capacitación comercial para equipos',
+      format: 'TRAINING' as const,
+      description:
+        'Programa para equipos de ventas: método, guiones, hábitos comerciales y seguimiento disciplinado.',
+      modality: 'A medida',
+      audience: 'Equipos comerciales, inmobiliarias y empresas con fuerza de ventas.',
+      duration: 'Por definir',
+    },
+  ];
+
+  for (const program of starterPrograms) {
+    const existing = await prisma.academyProgram.findFirst({
+      where: { tenantId: tenant.id, title: program.title },
+    });
+    if (!existing) {
+      await prisma.academyProgram.create({
+        data: { tenantId: tenant.id, ...program, status: 'OPEN' },
+      });
+    }
+  }
+
   console.log('Seed completado.');
   console.log(`  Tenant:   ${tenant.name} (${tenant.slug})`);
   console.log(`  Roles:    ${Object.keys(ROLE_PERMISSIONS).join(', ')}`);
   console.log(`  Permisos: ${ALL.length}`);
+  console.log(`  Academia: ${starterPrograms.length} programas base`);
   console.log(`  Admin:    ${email}`);
 }
 
