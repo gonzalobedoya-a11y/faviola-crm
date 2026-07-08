@@ -767,10 +767,22 @@ function ProgramCard({
   image: string;
   onEdit?: (program: AcademyProgram) => void;
 }): ReactNode {
+  const imagePosition: Record<AcademyFormat, string> = {
+    TRAINING: 'object-[58%_center]',
+    TALK: 'object-[56%_center]',
+    WORKSHOP: 'object-[62%_center]',
+  };
+
   return (
     <article className="overflow-hidden rounded-lg border border-border bg-surface">
-      <div className="relative h-28">
-        <Image src={image} alt="" fill className="object-cover" sizes="260px" />
+      <div className="relative h-36">
+        <Image
+          src={image}
+          alt=""
+          fill
+          className={`object-cover ${imagePosition[program.format]}`}
+          sizes="(min-width: 768px) 260px, 100vw"
+        />
         <Badge className="absolute bottom-2 left-2 border-brand/30 bg-brand-tint text-brand-deep">
           {formatLabel[program.format]}
         </Badge>
