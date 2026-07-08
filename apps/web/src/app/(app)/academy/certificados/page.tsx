@@ -107,6 +107,17 @@ export default function CertificadosPage(): ReactNode {
     });
   }
 
+  function imprimirCertificados(): void {
+    openCertificatesPrintWindow({
+      nombres,
+      taller,
+      horas,
+      modalidad,
+      fecha,
+      origin: window.location.origin,
+    });
+  }
+
   return (
     <div className="space-y-6">
       {/* Formulario (no se imprime) */}
@@ -134,7 +145,7 @@ export default function CertificadosPage(): ReactNode {
           <Button
             variant="brand"
             size="lg"
-            onClick={() => window.print()}
+            onClick={imprimirCertificados}
             disabled={nombres.length === 0}
           >
             <Printer className="h-4 w-4" />
@@ -298,6 +309,248 @@ export default function CertificadosPage(): ReactNode {
 
 const inputClass =
   'h-10 w-full rounded-lg border border-border bg-surface-sunken px-3 text-sm text-content placeholder:text-content-muted focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+
+interface CertificatesPrintPayload {
+  nombres: string[];
+  taller: string;
+  horas: string;
+  modalidad: string;
+  fecha: string;
+  origin: string;
+}
+
+function openCertificatesPrintWindow(payload: CertificatesPrintPayload): void {
+  const popup = window.open('', '_blank', 'width=1200,height=840');
+  if (!popup) {
+    window.print();
+    return;
+  }
+
+  popup.document.write(buildCertificatesPrintHtml(payload));
+  popup.document.close();
+}
+
+function buildCertificatesPrintHtml({
+  nombres,
+  taller,
+  horas,
+  modalidad,
+  fecha,
+  origin,
+}: CertificatesPrintPayload): string {
+  const bg = `${origin}/brand/certificate-bg.png`;
+  const logo = `${origin}/brand/logo-monogram.png`;
+  const pages = nombres
+    .map((nombre) =>
+      certificatePrintPage({
+        nombre,
+        taller: taller || 'Nombre del taller',
+        horas: horas || '-',
+        modalidad: modalidad || '-',
+        fecha: fecha || '-',
+        bg,
+        logo,
+      }),
+    )
+    .join('');
+
+  return `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Certificados Academia FV</title>
+    <style>
+      @page { size: A4 landscape; margin: 0; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #eee8dc; color: ${INK}; }
+      body { font-family: Arial, Helvetica, sans-serif; }
+      .toolbar {
+        position: sticky; top: 0; z-index: 10; display: flex; justify-content: center; gap: 10px;
+        padding: 12px; background: #faf7f0; border-bottom: 1px solid #d8cebb;
+      }
+      .toolbar button {
+        border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer;
+        background: ${GOLD}; color: white; font-weight: 700; font-size: 14px;
+      }
+      .toolbar .muted { background: #f2ece0; color: ${INK}; }
+      .cert-page {
+        width: 297mm; height: 210mm; margin: 12px auto; position: relative; overflow: hidden;
+        background: ${CREAM}; page-break-after: always; break-after: page;
+        box-shadow: 0 10px 35px rgba(27, 26, 24, .18);
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      .cert-page:last-child { page-break-after: auto; break-after: auto; }
+      .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: left center; }
+      .wash, .glow { position: absolute; inset: 0; pointer-events: none; }
+      .wash { background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.08) 24%, rgba(255,255,255,.2) 52%, rgba(255,255,255,.18) 100%); }
+      .glow { background: radial-gradient(58% 64% at 62% 48%, rgba(255,255,255,.36) 0%, rgba(255,255,255,.2) 52%, rgba(255,255,255,0) 82%); }
+      .frame { position: absolute; inset: 5.5mm; border: .35mm solid ${GOLD}; }
+      .bottom-rule {
+        position: absolute; left: 5.5mm; right: 51mm; bottom: 5.5mm; height: .35mm;
+        background: linear-gradient(90deg, transparent 0%, ${GOLD} 18%, ${GOLD} 82%, transparent 100%);
+        opacity: .7;
+      }
+      .flourish { position: absolute; width: 48mm; height: 48mm; opacity: .45; }
+      .flourish.top { top: 7mm; right: 7mm; }
+      .flourish.bottom { bottom: 7mm; left: 7mm; transform: rotate(180deg); }
+      .content {
+        position: absolute; inset: 7mm 21mm 9mm 74mm; display: flex; flex-direction: column;
+        align-items: center; justify-content: space-between; text-align: center;
+      }
+      .logo { width: 27mm; height: 21mm; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,.1)); }
+      .brand { margin-top: 1mm; font-family: Georgia, 'Times New Roman', serif; font-size: 6.1mm; letter-spacing: .28em; padding-left: .28em; }
+      .subbrand { display: flex; align-items: center; gap: 2.4mm; margin-top: 1.5mm; color: ${GOLD_DEEP}; font-size: 2.7mm; letter-spacing: .42em; padding-left: .42em; }
+      .subbrand span { width: 7mm; height: .18mm; background: ${GOLD}; }
+      h1 {
+        margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 18.5mm;
+        line-height: 1; letter-spacing: .1em; padding-left: .1em; font-weight: 400;
+      }
+      .participacion { display: flex; align-items: center; justify-content: center; gap: 3mm; margin-top: 2mm; color: ${GOLD_DEEP}; font-size: 4.4mm; letter-spacing: .34em; padding-left: .34em; }
+      .dash { display: inline-flex; align-items: center; gap: 1mm; }
+      .dash:before { content: ''; width: 7mm; height: .22mm; background: ${GOLD}; display: block; }
+      .diamond { width: 1.6mm; height: 1.6mm; background: ${GOLD}; transform: rotate(45deg); display: inline-block; }
+      .lead { margin: 9mm 0 0; color: ${INK_SOFT}; font-size: 4mm; }
+      .name {
+        margin: 1.5mm 0 2mm; font-family: Georgia, 'Times New Roman', serif; color: ${GOLD};
+        font-weight: 700; line-height: 1.05; letter-spacing: .05em; white-space: nowrap;
+      }
+      .divider { display: flex; align-items: center; gap: 2mm; width: 70%; }
+      .divider:before, .divider:after { content: ''; flex: 1; height: .25mm; background: ${GOLD}; opacity: .6; }
+      .text { color: ${INK_SOFT}; font-size: 3.85mm; line-height: 1.45; }
+      .workshop { margin: 1.5mm 0; max-width: 92%; font-family: Georgia, 'Times New Roman', serif; font-size: 5.9mm; font-weight: 700; line-height: 1.12; text-transform: uppercase; }
+      .description { max-width: 78%; }
+      .details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8mm; width: 74%; margin-top: 7mm; }
+      .detail { display: flex; align-items: center; gap: 2.4mm; text-align: left; min-width: 0; }
+      .detail-icon { width: 8mm; height: 8mm; display: grid; place-items: center; color: ${GOLD}; font-size: 6mm; }
+      .detail strong { display: block; font-size: 3.3mm; color: ${INK}; }
+      .detail span { display: block; font-size: 3.1mm; color: ${INK_SOFT}; }
+      .signature-row { width: 100%; display: flex; align-items: flex-end; justify-content: space-between; padding-top: 2mm; }
+      .signature-space { width: 54mm; }
+      .signature { text-align: center; transform: translateX(6mm); }
+      .script { font-family: 'Brush Script MT', 'Segoe Script', cursive; font-size: 10mm; line-height: 1; }
+      .sig-line { width: 54mm; height: .3mm; background: ${INK}; opacity: .7; margin: .8mm auto 1.6mm; }
+      .sig-name { font-family: Georgia, 'Times New Roman', serif; font-size: 3.7mm; font-weight: 700; letter-spacing: .12em; }
+      .sig-role { margin-top: .9mm; color: ${GOLD_DEEP}; font-size: 2.8mm; letter-spacing: .24em; }
+      .seal {
+        width: 38mm; height: 38mm; border: .7mm solid ${GOLD}; border-radius: 50%;
+        display: grid; place-items: center; color: ${GOLD}; font-family: Georgia, 'Times New Roman', serif;
+        position: relative;
+      }
+      .seal:before { content: ''; position: absolute; inset: 3.5mm; border: .3mm solid ${GOLD}; border-radius: 50%; opacity: .7; }
+      .seal-main { font-size: 15mm; font-weight: 700; z-index: 1; }
+      @media print {
+        html, body { width: 297mm; min-height: 210mm; background: white; }
+        .toolbar { display: none; }
+        .cert-page { margin: 0; box-shadow: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <button onclick="window.print()">Guardar como PDF / Imprimir</button>
+      <button class="muted" onclick="window.close()">Cerrar</button>
+    </div>
+    ${pages}
+    <script>
+      async function readyToPrint() {
+        const imgs = Array.from(document.images);
+        await Promise.all(imgs.map((img) => img.complete ? Promise.resolve() : new Promise((resolve) => {
+          img.onload = resolve; img.onerror = resolve;
+        })));
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        setTimeout(() => { window.focus(); window.print(); }, 250);
+      }
+      window.addEventListener('load', readyToPrint);
+    </script>
+  </body>
+</html>`;
+}
+
+function certificatePrintPage({
+  nombre,
+  taller,
+  horas,
+  modalidad,
+  fecha,
+  bg,
+  logo,
+}: {
+  nombre: string;
+  taller: string;
+  horas: string;
+  modalidad: string;
+  fecha: string;
+  bg: string;
+  logo: string;
+}): string {
+  const safeName = escapeHtml(nombre);
+  const nameSize = Math.max(7.2, Math.min(14.4, 260 / Math.max(nombre.length, 1)));
+
+  return `<section class="cert-page">
+    <img class="bg" src="${escapeAttribute(bg)}" alt="">
+    <div class="wash"></div>
+    <div class="glow"></div>
+    <div class="frame"></div>
+    <div class="bottom-rule"></div>
+    ${flourishSvg('top')}
+    ${flourishSvg('bottom')}
+    <div class="content">
+      <header>
+        <img class="logo" src="${escapeAttribute(logo)}" alt="Faviola Velarde">
+        <div class="brand">FAVIOLA VELARDE</div>
+        <div class="subbrand"><span></span>ASESORIA PATRIMONIAL<span></span></div>
+      </header>
+      <main>
+        <h1>CERTIFICADO</h1>
+        <div class="participacion"><span class="dash"></span><span>DE PARTICIPACION</span><span class="dash"><i class="diamond"></i></span></div>
+        <p class="lead">Se otorga el presente certificado a:</p>
+        <p class="name" style="font-size: ${nameSize}mm;">${safeName}</p>
+        <div class="divider"><span class="diamond"></span></div>
+        <p class="text" style="margin-top: 6mm;">Por haber participado en el taller:</p>
+        <p class="workshop">${escapeHtml(taller)}</p>
+        <p class="text description">Desarrollado por Faviola Velarde - Asesoria Patrimonial, con una duracion de ${escapeHtml(horas)} horas academicas.</p>
+        <div class="details">
+          <div class="detail"><div class="detail-icon">▣</div><div><strong>Fecha:</strong><span>${escapeHtml(fecha)}</span></div></div>
+          <div class="detail"><div class="detail-icon">○</div><div><strong>Duracion:</strong><span>${escapeHtml(horas)} horas academicas</span></div></div>
+          <div class="detail"><div class="detail-icon">⌖</div><div><strong>Modalidad:</strong><span>${escapeHtml(modalidad)}</span></div></div>
+        </div>
+      </main>
+      <footer class="signature-row">
+        <div class="signature-space"></div>
+        <div class="signature">
+          <div class="script">Faviola Velarde</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">FAVIOLA VELARDE</div>
+          <div class="sig-role">ASESORA PATRIMONIAL</div>
+        </div>
+        <div class="signature-space" style="display:flex; justify-content:flex-end;"><div class="seal"><div class="seal-main">FV</div></div></div>
+      </footer>
+    </div>
+  </section>`;
+}
+
+function flourishSvg(position: 'top' | 'bottom'): string {
+  return `<svg class="flourish ${position}" viewBox="0 0 120 120" fill="none" stroke="${GOLD}" stroke-width=".8">
+    <path d="M120 0 C70 8 30 30 8 78"></path>
+    <path d="M120 12 C76 20 40 42 20 88"></path>
+    <path d="M120 24 C84 32 52 54 34 96"></path>
+    <path d="M120 36 C92 44 66 64 50 100"></path>
+  </svg>`;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function escapeAttribute(value: string): string {
+  return escapeHtml(value);
+}
 
 function Campo({
   label,
