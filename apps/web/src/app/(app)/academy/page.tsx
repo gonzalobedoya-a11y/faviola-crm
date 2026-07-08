@@ -769,7 +769,7 @@ function ProgramCard({
 }): ReactNode {
   const imagePosition: Record<AcademyFormat, string> = {
     TRAINING: 'object-[58%_center]',
-    TALK: 'object-[56%_center]',
+    TALK: 'object-[72%_center]',
     WORKSHOP: 'object-[62%_center]',
   };
 
