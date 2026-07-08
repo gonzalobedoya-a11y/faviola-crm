@@ -59,7 +59,11 @@ const programStatusLabel: Record<AcademyProgram['status'], string> = {
   CLOSED: 'Cerrado',
 };
 
-const programImages = ['/brand/academy-bg.png', '/brand/landing-bg.png', '/brand/inicio-fv.png'];
+const programImages: Record<AcademyFormat, string> = {
+  TRAINING: '/brand/program-capacitacion.png',
+  TALK: '/brand/program-charla.png',
+  WORKSHOP: '/brand/program-taller.png',
+};
 
 export default function AcademyAdminPage(): ReactNode {
   const { data, isLoading, isError } = useAcademyDashboard();
@@ -290,11 +294,11 @@ export default function AcademyAdminPage(): ReactNode {
               {featuredPrograms.length === 0 ? (
                 <Empty label="Aun no hay programas creados." />
               ) : (
-                featuredPrograms.map((program, index) => (
+                featuredPrograms.map((program) => (
                   <ProgramCard
                     key={program.id}
                     program={program}
-                    image={programImages[index % programImages.length] ?? '/brand/academy-bg.png'}
+                    image={programImages[program.format]}
                     onEdit={setEditingProgram}
                   />
                 ))
