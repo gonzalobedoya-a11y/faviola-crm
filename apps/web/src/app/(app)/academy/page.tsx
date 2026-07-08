@@ -213,7 +213,7 @@ export default function AcademyAdminPage(): ReactNode {
             aria-label="Abrir landing de Academia FV"
           >
             <Image
-              src="/brand/faviola-capacitacion.png"
+              src="/brand/faviola-landing-2.png"
               alt=""
               fill
               className="object-cover object-[62%_center]"
