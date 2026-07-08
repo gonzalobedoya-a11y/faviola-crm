@@ -5,11 +5,8 @@ import {
   AlertTriangle,
   Building2,
   CalendarDays,
-  FileText,
   Plus,
   Sparkles,
-  TrendingUp,
-  UserRoundCheck,
   Users,
   Wallet,
   type LucideIcon,
@@ -90,37 +87,57 @@ export default function DashboardPage(): ReactNode {
     { icon: Users, value: qs?.hotClients ?? 0, label: 'clientes hot', sub: 'alta prioridad' },
   ];
 
-  const kpis: { icon: LucideIcon; value: string | number; label: string; delta?: number }[] = [
-    { icon: Users, value: counts?.clients ?? 0, label: 'Clientes', delta: data?.deltas.clients },
-    { icon: UserRoundCheck, value: counts?.owners ?? 0, label: 'Propietarios' },
+  const pipelineTotalCount = (data?.pipeline ?? []).reduce((sum, s) => sum + s.count, 0) || 1;
+  const pipelineValue = (data?.pipeline ?? []).reduce((sum, s) => sum + s.total, 0);
+
+  const executiveKpis: {
+    icon: LucideIcon;
+    title: string;
+    headline: string;
+    detail: string;
+    items: Array<{ label: string; value: string | number; delta?: number }>;
+  }[] = [
     {
-      icon: Building2,
-      value: counts?.properties ?? 0,
-      label: 'Propiedades',
-      delta: data?.deltas.properties,
+      icon: Users,
+      title: 'Contactos',
+      headline: `${counts?.clients ?? 0} clientes`,
+      detail: `${counts?.owners ?? 0} propietarios registrados`,
+      items: [
+        { label: 'Clientes', value: counts?.clients ?? 0, delta: data?.deltas.clients },
+        { label: 'Propietarios', value: counts?.owners ?? 0 },
+      ],
     },
     {
       icon: Building2,
-      value: counts?.availableProperties ?? 0,
-      label: 'Disponibles',
+      title: 'Inventario',
+      headline: `${counts?.availableProperties ?? 0} disponibles`,
+      detail: `${counts?.properties ?? 0} propiedades en cartera`,
+      items: [
+        { label: 'Propiedades', value: counts?.properties ?? 0, delta: data?.deltas.properties },
+        { label: 'Documentos', value: counts?.documents ?? 0 },
+      ],
     },
-    { icon: FileText, value: counts?.documents ?? 0, label: 'Documentos' },
     {
       icon: Sparkles,
-      value: counts?.matches ?? 0,
-      label: 'Coincidencias',
-      delta: data?.deltas.matches,
+      title: 'Oportunidades',
+      headline: `${counts?.matches ?? 0} coincidencias`,
+      detail: `${counts?.deals ?? 0} negociaciones activas`,
+      items: [
+        { label: 'Coincidencias', value: counts?.matches ?? 0, delta: data?.deltas.matches },
+        { label: 'Negociaciones', value: counts?.deals ?? 0 },
+      ],
     },
     {
       icon: Wallet,
-      value: formatMoney(counts?.pipelineValue ?? 0, 'PEN'),
-      label: 'Valor en cartera',
+      title: 'Valor comercial',
+      headline: formatMoney(counts?.pipelineValue ?? 0, 'PEN'),
+      detail: 'Valor estimado en cartera y pipeline',
+      items: [
+        { label: 'En cartera', value: formatMoney(counts?.pipelineValue ?? 0, 'PEN') },
+        { label: 'Pipeline', value: formatMoney(pipelineValue, 'PEN') },
+      ],
     },
-    { icon: TrendingUp, value: counts?.deals ?? 0, label: 'Negociaciones' },
   ];
-
-  const pipelineTotalCount = (data?.pipeline ?? []).reduce((sum, s) => sum + s.count, 0) || 1;
-  const pipelineValue = (data?.pipeline ?? []).reduce((sum, s) => sum + s.total, 0);
 
   return (
     <div className="space-y-6">
@@ -213,31 +230,10 @@ export default function DashboardPage(): ReactNode {
       )}
 
       {/* KPIs */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-8">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {isLoading
-          ? Array.from({ length: 8 }).map((_, index) => <SkeletonCard key={index} />)
-          : kpis.map((kpi) => {
-              const Icon = kpi.icon;
-              return (
-                <div
-                  key={kpi.label}
-                  className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1"
-                >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-tint text-brand-deep">
-                    <Icon className="h-[18px] w-[18px]" />
-                  </span>
-                  <p className="mt-4 text-2xl font-semibold tabular-nums text-content">
-                    {kpi.value}
-                  </p>
-                  <p className="text-sm text-content-muted">{kpi.label}</p>
-                  {kpi.delta !== undefined && kpi.delta > 0 && (
-                    <p className="mt-1 text-xs font-medium text-success">
-                      +{kpi.delta} esta semana
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+          ? Array.from({ length: 4 }).map((_, index) => <SkeletonCard key={index} />)
+          : executiveKpis.map((kpi) => <ExecutiveKpiCard key={kpi.title} {...kpi} />)}
       </section>
 
       {/* Paneles */}
@@ -394,6 +390,53 @@ function Panel({
       </div>
       {children}
     </div>
+  );
+}
+
+function ExecutiveKpiCard({
+  icon: Icon,
+  title,
+  headline,
+  detail,
+  items,
+}: {
+  icon: LucideIcon;
+  title: string;
+  headline: string;
+  detail: string;
+  items: Array<{ label: string; value: string | number; delta?: number }>;
+}): ReactNode {
+  return (
+    <article className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-content-muted">
+            {title}
+          </p>
+          <p className="mt-2 truncate text-2xl font-semibold tabular-nums text-content">
+            {headline}
+          </p>
+          <p className="mt-1 text-sm text-content-muted">{detail}</p>
+        </div>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-brand-deep">
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-4">
+        {items.map((item) => (
+          <div key={item.label} className="min-w-0">
+            <p className="truncate text-lg font-semibold tabular-nums text-content">{item.value}</p>
+            <p className="truncate text-xs text-content-muted">{item.label}</p>
+            {item.delta !== undefined && item.delta > 0 && (
+              <p className="mt-0.5 text-[11px] font-medium text-success">
+                +{item.delta} esta semana
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </article>
   );
 }
 
