@@ -87,7 +87,8 @@ export default function DashboardPage(): ReactNode {
     { icon: Users, value: qs?.hotClients ?? 0, label: 'clientes hot', sub: 'alta prioridad' },
   ];
 
-  const pipelineTotalCount = (data?.pipeline ?? []).reduce((sum, s) => sum + s.count, 0) || 1;
+  const pipelineTotalCount = (data?.pipeline ?? []).reduce((sum, s) => sum + s.count, 0);
+  const pipelineChartTotal = pipelineTotalCount || 1;
   const pipelineValue = (data?.pipeline ?? []).reduce((sum, s) => sum + s.total, 0);
 
   const executiveKpis: {
@@ -95,26 +96,32 @@ export default function DashboardPage(): ReactNode {
     title: string;
     headline: string;
     detail: string;
-    items: Array<{ label: string; value: string | number; delta?: number }>;
+    items?: Array<{ label: string; value: string | number; tone?: 'success' | 'muted' }>;
   }[] = [
     {
       icon: Users,
       title: 'Contactos',
-      headline: `${counts?.clients ?? 0} clientes`,
-      detail: `${counts?.owners ?? 0} propietarios registrados`,
+      headline: `${(counts?.clients ?? 0) + (counts?.owners ?? 0)} contactos`,
+      detail: `${counts?.clients ?? 0} clientes · ${counts?.owners ?? 0} propietarios`,
       items: [
-        { label: 'Clientes', value: counts?.clients ?? 0, delta: data?.deltas.clients },
-        { label: 'Propietarios', value: counts?.owners ?? 0 },
+        {
+          label: 'esta semana',
+          value: `+${data?.deltas.clients ?? 0}`,
+          tone: 'success',
+        },
       ],
     },
     {
       icon: Building2,
       title: 'Inventario',
       headline: `${counts?.availableProperties ?? 0} disponibles`,
-      detail: `${counts?.properties ?? 0} propiedades en cartera`,
+      detail: `${counts?.properties ?? 0} propiedades · ${counts?.documents ?? 0} documentos`,
       items: [
-        { label: 'Propiedades', value: counts?.properties ?? 0, delta: data?.deltas.properties },
-        { label: 'Documentos', value: counts?.documents ?? 0 },
+        {
+          label: 'esta semana',
+          value: `+${data?.deltas.properties ?? 0}`,
+          tone: 'success',
+        },
       ],
     },
     {
@@ -123,19 +130,18 @@ export default function DashboardPage(): ReactNode {
       headline: `${counts?.matches ?? 0} coincidencias`,
       detail: `${counts?.deals ?? 0} negociaciones activas`,
       items: [
-        { label: 'Coincidencias', value: counts?.matches ?? 0, delta: data?.deltas.matches },
-        { label: 'Negociaciones', value: counts?.deals ?? 0 },
+        {
+          label: 'nuevas esta semana',
+          value: `+${data?.deltas.matches ?? 0}`,
+          tone: 'success',
+        },
       ],
     },
     {
       icon: Wallet,
       title: 'Valor comercial',
-      headline: formatMoney(counts?.pipelineValue ?? 0, 'PEN'),
-      detail: 'Valor estimado en cartera y pipeline',
-      items: [
-        { label: 'En cartera', value: formatMoney(counts?.pipelineValue ?? 0, 'PEN') },
-        { label: 'Pipeline', value: formatMoney(pipelineValue, 'PEN') },
-      ],
+      headline: formatMoney(Math.max(counts?.pipelineValue ?? 0, pipelineValue), 'PEN'),
+      detail: `${pipelineTotalCount} oportunidades valorizadas`,
     },
   ];
 
@@ -320,7 +326,7 @@ export default function DashboardPage(): ReactNode {
                     key={stage.stage}
                     className="rounded-full"
                     style={{
-                      flex: (stage.count || 0.02) / pipelineTotalCount,
+                      flex: (stage.count || 0.02) / pipelineChartTotal,
                       backgroundColor: stageColor[stage.stage],
                     }}
                   />
@@ -398,13 +404,13 @@ function ExecutiveKpiCard({
   title,
   headline,
   detail,
-  items,
+  items = [],
 }: {
   icon: LucideIcon;
   title: string;
   headline: string;
   detail: string;
-  items: Array<{ label: string; value: string | number; delta?: number }>;
+  items?: Array<{ label: string; value: string | number; tone?: 'success' | 'muted' }>;
 }): ReactNode {
   return (
     <article className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1">
@@ -423,19 +429,22 @@ function ExecutiveKpiCard({
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-4">
-        {items.map((item) => (
-          <div key={item.label} className="min-w-0">
-            <p className="truncate text-lg font-semibold tabular-nums text-content">{item.value}</p>
-            <p className="truncate text-xs text-content-muted">{item.label}</p>
-            {item.delta !== undefined && item.delta > 0 && (
-              <p className="mt-0.5 text-[11px] font-medium text-success">
-                +{item.delta} esta semana
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
+      {items.length > 0 && (
+        <div className="mt-4 flex items-center gap-2 border-t border-border pt-4">
+          {items.map((item) => (
+            <span
+              key={item.label}
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                item.tone === 'success'
+                  ? 'bg-success/10 text-success'
+                  : 'bg-surface-sunken text-content-muted'
+              }`}
+            >
+              {item.value} {item.label}
+            </span>
+          ))}
+        </div>
+      )}
     </article>
   );
 }
