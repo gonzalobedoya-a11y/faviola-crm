@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -17,6 +17,8 @@ import {
   createAcademyStudentSchema,
   type PortalAccessDto,
   portalAccessSchema,
+  type UpdateAcademyProgramDto,
+  updateAcademyProgramSchema,
 } from './dto/academy.dto';
 
 @ApiTags('academy')
@@ -58,6 +60,16 @@ export class AcademyController {
     @Body(new ZodValidationPipe(createAcademyProgramSchema)) dto: CreateAcademyProgramDto,
   ) {
     return this.academy.createProgram(user.tenantId, dto);
+  }
+
+  @Patch('programs/:id')
+  @RequirePermissions('academy.update')
+  updateProgram(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateAcademyProgramSchema)) dto: UpdateAcademyProgramDto,
+  ) {
+    return this.academy.updateProgram(user.tenantId, id, dto);
   }
 
   @Post('students')

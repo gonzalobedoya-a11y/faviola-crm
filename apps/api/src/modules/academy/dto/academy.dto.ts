@@ -26,6 +26,8 @@ export const createAcademyProgramSchema = z.object({
   status: z.enum(['DRAFT', 'OPEN', 'CLOSED']).default('OPEN'),
 });
 
+export const updateAcademyProgramSchema = createAcademyProgramSchema.partial();
+
 export const createAcademyStudentSchema = z.object({
   firstName: z.string().min(1, 'El nombre es obligatorio'),
   lastName: z.string().optional(),
@@ -43,5 +45,6 @@ export const portalAccessSchema = z.object({
 
 export type CreateAcademyLeadDto = z.infer<typeof createAcademyLeadSchema>;
 export type CreateAcademyProgramDto = z.infer<typeof createAcademyProgramSchema>;
+export type UpdateAcademyProgramDto = z.infer<typeof updateAcademyProgramSchema>;
 export type CreateAcademyStudentDto = z.infer<typeof createAcademyStudentSchema>;
 export type PortalAccessDto = z.infer<typeof portalAccessSchema>;

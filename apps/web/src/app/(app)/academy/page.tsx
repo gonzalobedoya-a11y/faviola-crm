@@ -9,6 +9,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Copy,
+  Edit3,
   ExternalLink,
   FileBadge,
   GraduationCap,
@@ -24,12 +25,18 @@ import { useMemo, useState, type FormEvent, type InputHTMLAttributes, type React
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useAcademyDashboard, useCreateAcademyStudent } from '@/features/academy/api';
+import {
+  useAcademyDashboard,
+  useCreateAcademyProgram,
+  useCreateAcademyStudent,
+  useUpdateAcademyProgram,
+} from '@/features/academy/api';
 import type {
   AcademyFormat,
   AcademyLead,
   AcademyLeadStatus,
   AcademyProgram,
+  AcademyProgramInput,
   AcademyStudent,
 } from '@/features/academy/types';
 
@@ -46,12 +53,22 @@ const statusLabel: Record<AcademyLeadStatus, string> = {
   DISCARDED: 'Descartados',
 };
 
+const programStatusLabel: Record<AcademyProgram['status'], string> = {
+  DRAFT: 'Borrador',
+  OPEN: 'Publicado',
+  CLOSED: 'Cerrado',
+};
+
 const programImages = ['/brand/academy-bg.png', '/brand/landing-bg.png', '/brand/inicio-fv.png'];
 
 export default function AcademyAdminPage(): ReactNode {
   const { data, isLoading, isError } = useAcademyDashboard();
   const createStudent = useCreateAcademyStudent();
+  const createProgram = useCreateAcademyProgram();
+  const updateProgram = useUpdateAcademyProgram();
   const [createdCode, setCreatedCode] = useState<string | null>(null);
+  const [editingProgram, setEditingProgram] = useState<AcademyProgram | null>(null);
+  const [programSaved, setProgramSaved] = useState<string | null>(null);
 
   const suggestedCode = useMemo(() => `FV${Math.floor(1000 + Math.random() * 9000)}`, []);
 
@@ -71,6 +88,23 @@ export default function AcademyAdminPage(): ReactNode {
       notes: String(formData.get('notes') ?? '').trim() || undefined,
     });
     setCreatedCode(accessCode);
+    form.reset();
+  };
+
+  const submitProgram = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const input = programInputFromForm(new FormData(form));
+
+    if (editingProgram) {
+      await updateProgram.mutateAsync({ id: editingProgram.id, input });
+      setProgramSaved('Programa actualizado.');
+    } else {
+      await createProgram.mutateAsync(input);
+      setProgramSaved('Programa creado.');
+    }
+
+    setEditingProgram(null);
     form.reset();
   };
 
@@ -261,6 +295,7 @@ export default function AcademyAdminPage(): ReactNode {
                     key={program.id}
                     program={program}
                     image={programImages[index % programImages.length] ?? '/brand/academy-bg.png'}
+                    onEdit={setEditingProgram}
                   />
                 ))
               )}
@@ -337,6 +372,165 @@ export default function AcademyAdminPage(): ReactNode {
             </div>
           </Panel>
         </aside>
+      </section>
+
+      <section id="gestionar-programas" className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+        <form
+          key={editingProgram?.id ?? 'new-program'}
+          onSubmit={(event) => void submitProgram(event)}
+          className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-brand-deep" />
+                <h2 className="font-display text-2xl text-content">
+                  {editingProgram ? 'Modificar programa' : 'Nuevo programa'}
+                </h2>
+              </div>
+              <p className="mt-1 text-sm text-content-muted">
+                Crea cursos, charlas y talleres para mostrarlos en la landing y asignarlos a
+                alumnos.
+              </p>
+            </div>
+            {editingProgram && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setEditingProgram(null);
+                  setProgramSaved(null);
+                }}
+              >
+                Cancelar
+              </Button>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Input
+              label="Titulo"
+              name="title"
+              defaultValue={editingProgram?.title ?? ''}
+              required
+            />
+            <label className="space-y-1 text-sm font-medium text-content">
+              Tipo
+              <select
+                name="format"
+                defaultValue={editingProgram?.format ?? 'WORKSHOP'}
+                className="h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-content"
+              >
+                <option value="WORKSHOP">Taller</option>
+                <option value="TALK">Charla</option>
+                <option value="TRAINING">Curso / capacitacion</option>
+              </select>
+            </label>
+            <Input
+              label="Modalidad"
+              name="modality"
+              defaultValue={editingProgram?.modality ?? 'En vivo'}
+              required
+            />
+            <Input
+              label="Fecha y hora"
+              name="startsAt"
+              type="datetime-local"
+              defaultValue={toDateTimeLocal(editingProgram?.startsAt)}
+            />
+            <Input
+              label="Duracion"
+              name="duration"
+              placeholder="Ej. 6 horas academicas"
+              defaultValue={editingProgram?.duration ?? ''}
+            />
+            <Input
+              label="Capacidad"
+              name="capacity"
+              type="number"
+              min={1}
+              defaultValue={editingProgram?.capacity ?? ''}
+            />
+            <label className="space-y-1 text-sm font-medium text-content">
+              Estado
+              <select
+                name="status"
+                defaultValue={editingProgram?.status ?? 'OPEN'}
+                className="h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-content"
+              >
+                <option value="DRAFT">Borrador</option>
+                <option value="OPEN">Publicado</option>
+                <option value="CLOSED">Cerrado</option>
+              </select>
+            </label>
+            <Input
+              label="Publico objetivo"
+              name="audience"
+              placeholder="Ej. vendedores inmobiliarios"
+              defaultValue={editingProgram?.audience ?? ''}
+            />
+            <label className="space-y-1 text-sm font-medium text-content sm:col-span-2">
+              Descripcion
+              <textarea
+                name="description"
+                rows={3}
+                defaultValue={editingProgram?.description ?? ''}
+                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content"
+              />
+            </label>
+          </div>
+
+          {(createProgram.isError || updateProgram.isError) && (
+            <p className="mt-3 text-sm text-danger">No se pudo guardar el programa.</p>
+          )}
+          {programSaved && (
+            <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+              {programSaved}
+            </div>
+          )}
+          <Button
+            className="mt-4 w-full"
+            variant="brand"
+            disabled={createProgram.isPending || updateProgram.isPending}
+          >
+            {createProgram.isPending || updateProgram.isPending ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : editingProgram ? (
+              <Edit3 className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            {editingProgram ? 'Guardar cambios' : 'Crear programa'}
+          </Button>
+        </form>
+
+        <div className="rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-2xl text-content">Programas creados</h2>
+              <p className="text-sm text-content-muted">
+                Edita cursos, charlas y talleres publicados en Academia FV.
+              </p>
+            </div>
+            <Badge className="border-brand/30 bg-brand-tint text-brand-deep">
+              {data.programs.length} programas
+            </Badge>
+          </div>
+          <div className="mt-4 space-y-3">
+            {data.programs.length === 0 ? (
+              <Empty label="Aun no hay programas creados." />
+            ) : (
+              data.programs.map((program) => (
+                <ProgramRow
+                  key={program.id}
+                  program={program}
+                  active={editingProgram?.id === program.id}
+                  onEdit={setEditingProgram}
+                />
+              ))
+            )}
+          </div>
+        </div>
       </section>
 
       <section id="nuevo-alumno" className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
@@ -560,7 +754,15 @@ function PipelineStep({
   );
 }
 
-function ProgramCard({ program, image }: { program: AcademyProgram; image: string }): ReactNode {
+function ProgramCard({
+  program,
+  image,
+  onEdit,
+}: {
+  program: AcademyProgram;
+  image: string;
+  onEdit?: (program: AcademyProgram) => void;
+}): ReactNode {
   return (
     <article className="overflow-hidden rounded-lg border border-border bg-surface">
       <div className="relative h-28">
@@ -578,6 +780,67 @@ function ProgramCard({ program, image }: { program: AcademyProgram; image: strin
           <span>{program._count?.enrollments ?? 0} alumnos</span>
           <strong className="text-brand-deep">{program.modality}</strong>
         </div>
+        {onEdit && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="mt-3 w-full"
+            onClick={() => onEdit(program)}
+          >
+            <Edit3 className="h-4 w-4" />
+            Editar
+          </Button>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function ProgramRow({
+  program,
+  active,
+  onEdit,
+}: {
+  program: AcademyProgram;
+  active: boolean;
+  onEdit: (program: AcademyProgram) => void;
+}): ReactNode {
+  return (
+    <article
+      className={`rounded-lg border p-4 transition-colors ${
+        active ? 'border-brand bg-brand-tint/60' : 'border-border bg-surface'
+      }`}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold text-content">{program.title}</h3>
+            <Badge className="border-brand/30 bg-brand-tint text-brand-deep">
+              {formatLabel[program.format]}
+            </Badge>
+            <Badge className="border-border bg-surface-raised text-content-muted">
+              {programStatusLabel[program.status]}
+            </Badge>
+          </div>
+          <p className="mt-1 line-clamp-2 text-sm text-content-muted">
+            {program.description ?? 'Sin descripcion registrada.'}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-content-muted">
+            <span>{program.modality}</span>
+            <span>{program.duration ?? 'Duracion por definir'}</span>
+            <span>{program._count?.enrollments ?? 0} alumnos</span>
+            <span>{program._count?.leads ?? 0} leads</span>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant={active ? 'brand' : 'secondary'}
+          onClick={() => onEdit(program)}
+        >
+          <Edit3 className="h-4 w-4" />
+          Editar
+        </Button>
       </div>
     </article>
   );
@@ -660,6 +923,31 @@ function BigNumber({ label, value }: { label: string; value: string | number }):
       <p className="mt-1 text-xs text-content-muted">{label}</p>
     </div>
   );
+}
+
+function programInputFromForm(formData: FormData): AcademyProgramInput {
+  const startsAt = String(formData.get('startsAt') ?? '').trim();
+  const capacity = String(formData.get('capacity') ?? '').trim();
+
+  return {
+    title: String(formData.get('title') ?? '').trim(),
+    format: String(formData.get('format') ?? 'WORKSHOP') as AcademyFormat,
+    description: String(formData.get('description') ?? '').trim() || undefined,
+    modality: String(formData.get('modality') ?? '').trim() || 'En vivo',
+    audience: String(formData.get('audience') ?? '').trim() || undefined,
+    startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
+    duration: String(formData.get('duration') ?? '').trim() || undefined,
+    capacity: capacity ? Number(capacity) : undefined,
+    status: String(formData.get('status') ?? 'OPEN') as AcademyProgram['status'],
+  };
+}
+
+function toDateTimeLocal(value?: string | null): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
 function recentActivity(leads: AcademyLead[], students: AcademyStudent[]): string[] {

@@ -7,6 +7,7 @@ import type {
   CreateAcademyProgramDto,
   CreateAcademyStudentDto,
   PortalAccessDto,
+  UpdateAcademyProgramDto,
 } from './dto/academy.dto';
 
 @Injectable()
@@ -90,6 +91,25 @@ export class AcademyService {
         audience: dto.audience || null,
         duration: dto.duration || null,
       },
+    });
+  }
+
+  async updateProgram(tenantId: string, id: string, dto: UpdateAcademyProgramDto) {
+    const program = await this.prisma.academyProgram.findFirst({
+      where: { id, tenantId },
+      select: { id: true },
+    });
+    if (!program) throw new NotFoundException('Programa no encontrado');
+
+    return this.prisma.academyProgram.update({
+      where: { id },
+      data: {
+        ...dto,
+        description: dto.description === undefined ? undefined : dto.description || null,
+        audience: dto.audience === undefined ? undefined : dto.audience || null,
+        duration: dto.duration === undefined ? undefined : dto.duration || null,
+      },
+      include: { _count: { select: { leads: true, enrollments: true } } },
     });
   }
 

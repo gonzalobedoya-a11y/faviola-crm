@@ -26,6 +26,7 @@ export function Sidebar(): ReactNode {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href;
+          const highlighted = item.href === '/academy';
           return (
             <Link
               key={item.href}
@@ -34,10 +35,12 @@ export function Sidebar(): ReactNode {
                 'relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                 active
                   ? 'bg-brand-tint font-medium text-brand-deep'
-                  : 'text-content-secondary hover:bg-surface hover:text-content',
+                  : highlighted
+                    ? 'bg-brand-tint/70 font-medium text-brand-deep hover:bg-brand-tint'
+                    : 'text-content-secondary hover:bg-surface hover:text-content',
               )}
             >
-              {active && (
+              {(active || highlighted) && (
                 <span
                   className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-brand"
                   aria-hidden="true"

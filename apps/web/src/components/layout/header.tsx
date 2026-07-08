@@ -190,6 +190,8 @@ export function Header(): ReactNode {
           <div className="grid gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
+              const active = pathname === item.href;
+              const highlighted = item.href === '/academy';
               return (
                 <Link
                   key={item.href}
@@ -197,9 +199,11 @@ export function Header(): ReactNode {
                   onClick={closePanels}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-4 py-3 text-sm',
-                    pathname === item.href
+                    active
                       ? 'bg-brand-tint font-medium text-brand-deep'
-                      : 'text-content-secondary hover:bg-surface-sunken',
+                      : highlighted
+                        ? 'bg-brand-tint/70 font-medium text-brand-deep'
+                        : 'text-content-secondary hover:bg-surface-sunken',
                   )}
                 >
                   <Icon className="h-5 w-5" />

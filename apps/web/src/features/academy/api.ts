@@ -6,6 +6,7 @@ import type {
   AcademyDashboard,
   AcademyPortalResult,
   AcademyProgram,
+  AcademyProgramInput,
   CreateAcademyLeadInput,
   CreateAcademyStudentInput,
 } from './types';
@@ -49,5 +50,25 @@ export function useCreateAcademyStudent() {
   return useMutation({
     mutationFn: (input: CreateAcademyStudentInput) => httpClient.post('/academy/students', input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: academyKeys.all }),
+  });
+}
+
+export function useCreateAcademyProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AcademyProgramInput) => httpClient.post('/academy/programs', input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: academyKeys.all }),
+  });
+}
+
+export function useUpdateAcademyProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: AcademyProgramInput }) =>
+      httpClient.patch(`/academy/programs/${id}`, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: academyKeys.all });
+      void queryClient.invalidateQueries({ queryKey: academyKeys.publicPrograms });
+    },
   });
 }

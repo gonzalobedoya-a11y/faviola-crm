@@ -81,6 +81,18 @@ export interface CreateAcademyStudentInput {
   notes?: string;
 }
 
+export interface AcademyProgramInput {
+  title: string;
+  format: AcademyFormat;
+  description?: string;
+  modality: string;
+  audience?: string;
+  startsAt?: string;
+  duration?: string;
+  capacity?: number;
+  status: AcademyProgramStatus;
+}
+
 export interface AcademyPortalResult {
   student: { firstName: string; lastName?: string | null; email: string };
   programs: AcademyProgram[];
