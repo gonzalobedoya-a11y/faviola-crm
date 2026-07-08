@@ -98,7 +98,7 @@ export default function NewPropertyPage(): ReactNode {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="w-full max-w-4xl space-y-6">
       <div>
         <Link
           href="/properties"

@@ -39,7 +39,7 @@ export default function ClientDetailPage(): ReactNode {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="w-full max-w-5xl space-y-6">
       <Link
         href="/clients"
         className="inline-flex items-center gap-1 text-sm text-content-secondary hover:text-content"

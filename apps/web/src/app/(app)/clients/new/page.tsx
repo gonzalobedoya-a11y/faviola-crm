@@ -97,7 +97,7 @@ export default function NewClientPage(): ReactNode {
   });
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="w-full max-w-3xl space-y-6">
       <div>
         <Link
           href="/clients"

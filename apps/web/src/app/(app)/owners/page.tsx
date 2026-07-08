@@ -51,7 +51,7 @@ export default function OwnersPage(): ReactNode {
   ).length;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="w-full max-w-7xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl text-content">Propietarios</h1>

@@ -66,7 +66,7 @@ export default function ReportsPage(): ReactNode {
     );
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="w-full max-w-7xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl text-content">Reportes</h1>

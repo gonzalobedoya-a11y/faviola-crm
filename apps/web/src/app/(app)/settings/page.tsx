@@ -73,7 +73,7 @@ export default function SettingsPage(): ReactNode {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="w-full max-w-5xl space-y-6">
       <div>
         <h1 className="font-display text-3xl text-content">Configuración</h1>
         <p className="mt-1 text-sm text-content-muted">Perfil, apariencia y estado del sistema.</p>

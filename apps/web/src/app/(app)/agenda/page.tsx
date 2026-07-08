@@ -85,7 +85,7 @@ export default function AgendaPage(): ReactNode {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="w-full max-w-7xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl text-content">Agenda inteligente</h1>
@@ -134,7 +134,7 @@ export default function AgendaPage(): ReactNode {
           </p>
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <section className="space-y-3">
             <h2 className="text-sm font-semibold text-brand-deep">Prioridad de seguimiento</h2>
             {[...overdue, ...today].length === 0 ? (

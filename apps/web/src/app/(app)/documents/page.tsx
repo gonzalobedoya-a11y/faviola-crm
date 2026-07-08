@@ -106,7 +106,7 @@ export default function DocumentsPage(): ReactNode {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="w-full max-w-7xl space-y-6">
       <div>
         <h1 className="font-display text-3xl text-content">Expedientes y documentos</h1>
         <p className="mt-1 text-sm text-content-muted">

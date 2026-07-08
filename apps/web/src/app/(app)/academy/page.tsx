@@ -142,7 +142,7 @@ export default function AcademyAdminPage(): ReactNode {
   const recentStudents = data.students.slice(0, 3);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="w-full max-w-7xl space-y-5">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-sm font-semibold text-brand-deep">Academia FV</p>
