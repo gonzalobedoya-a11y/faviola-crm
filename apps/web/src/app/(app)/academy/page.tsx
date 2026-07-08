@@ -174,7 +174,13 @@ export default function AcademyAdminPage(): ReactNode {
             className="relative min-h-44 overflow-hidden bg-surface-sunken lg:min-h-full"
             aria-label="Abrir landing de Academia FV"
           >
-            <Image src="/brand/landing-bg.png" alt="" fill className="object-cover" sizes="340px" />
+            <Image
+              src="/brand/faviola-capacitacion.png"
+              alt=""
+              fill
+              className="object-cover object-[62%_center]"
+              sizes="340px"
+            />
             <div className="absolute inset-0 bg-gradient-to-r from-surface-raised/40 to-transparent" />
             <span className="absolute bottom-4 left-4 rounded-full bg-surface-raised/90 px-3 py-1.5 text-xs font-semibold text-brand-deep shadow-elevation-1">
               faviola-crm.vercel.app/academia
