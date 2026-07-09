@@ -42,8 +42,24 @@ export interface InboxMessage {
   createdAt: string;
 }
 
+export interface InboxProperty {
+  id: string;
+  code: string;
+  title: string;
+  propertyType?: string | null;
+  status: string;
+  price: number;
+  currency: string;
+  district?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  media: Array<{ id: string; url: string }>;
+}
+
 export interface ConversationDetail extends ConversationListItem {
   client?: ConversationClient | null;
+  property?: InboxProperty | null;
+  notes?: string | null;
   messages: InboxMessage[];
 }
 

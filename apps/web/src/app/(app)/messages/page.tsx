@@ -2,6 +2,7 @@
 
 import {
   Bot,
+  Building2,
   Check,
   Facebook,
   Instagram,
@@ -11,10 +12,12 @@ import {
   Search,
   Send,
   Sparkles,
+  StickyNote,
   Tag,
   UserRound,
   Wand2,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
@@ -26,6 +29,8 @@ import {
   useSendMessage,
   useUpdateConversation,
 } from '@/features/inbox/api';
+import { useProperties } from '@/features/properties/api';
+import { formatMoney } from '@/lib/format';
 import type {
   ChannelStatus,
   ConversationStatus,
@@ -56,6 +61,16 @@ const channelStatusLabel: Record<ChannelStatus, string> = {
   DISCONNECTED: 'Desconectado',
 };
 
+function isWhatsAppWindowExpired(conversation: {
+  channel: InboxChannel;
+  messages: InboxMessage[];
+}): boolean {
+  if (conversation.channel !== 'WHATSAPP') return false;
+  const lastContact = [...conversation.messages].reverse().find((m) => m.author === 'CONTACT');
+  if (!lastContact) return false;
+  return Date.now() - new Date(lastContact.createdAt).getTime() > 24 * 60 * 60 * 1000;
+}
+
 function timeAgo(iso: string): string {
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (min < 1) return 'ahora';
@@ -67,11 +82,14 @@ function timeAgo(iso: string): string {
 
 export default function MessagesPage(): ReactNode {
   const [channel, setChannel] = useState<InboxChannel | undefined>();
+  const [onlyUnread, setOnlyUnread] = useState(false);
   const [q, setQ] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data, isLoading } = useInbox({ channel, q: q.trim() || undefined });
-  const conversations = data?.conversations ?? [];
+  const all = data?.conversations ?? [];
+  const conversations = onlyUnread ? all.filter((c) => c.unread > 0) : all;
+  const unreadTotal = data?.counts.unread ?? 0;
 
   // Selecciona la primera conversación automáticamente.
   useEffect(() => {
@@ -129,9 +147,17 @@ export default function MessagesPage(): ReactNode {
                 className="h-9 w-full rounded-lg border border-border bg-surface-sunken pl-9 pr-3 text-sm text-content placeholder:text-content-muted focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
+            <div className="flex gap-1.5">
+              <FilterChip active={!onlyUnread} onClick={() => setOnlyUnread(false)}>
+                Todos
+              </FilterChip>
+              <FilterChip active={onlyUnread} onClick={() => setOnlyUnread(true)}>
+                No leídos{unreadTotal > 0 ? ` (${unreadTotal})` : ''}
+              </FilterChip>
+            </div>
             <div className="flex flex-wrap gap-1.5">
               <FilterChip active={!channel} onClick={() => setChannel(undefined)}>
-                Todos
+                Todas
               </FilterChip>
               {(['WHATSAPP', 'INSTAGRAM', 'FACEBOOK', 'TIKTOK'] as InboxChannel[]).map((c) => (
                 <FilterChip key={c} active={channel === c} onClick={() => setChannel(c)}>
@@ -314,6 +340,13 @@ function Thread({
         <div ref={bottomRef} />
       </div>
 
+      {conversation && isWhatsAppWindowExpired(conversation) && (
+        <div className="border-t border-warning/30 bg-warning/10 px-4 py-2.5 text-xs text-warning">
+          🕐 Han pasado más de 24 horas desde el último mensaje del cliente. Cuando WhatsApp esté
+          conectado, solo podrás enviar plantillas aprobadas fuera de esta ventana.
+        </div>
+      )}
+
       <div className="border-t border-border p-3">
         <div className="mb-2 flex items-center justify-between">
           <button
@@ -399,6 +432,33 @@ const temperatureLabel: Record<string, { label: string; className: string }> = {
   COLD: { label: 'Frío', className: 'text-info' },
 };
 
+const propertyStatusLabel: Record<string, string> = {
+  AVAILABLE: 'Disponible',
+  RESERVED: 'Reservada',
+  SOLD: 'Vendida',
+  RENTED: 'Alquilada',
+  OFF: 'Inactiva',
+};
+
+function InfoRow({
+  label,
+  value,
+  valueClass = '',
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+}): ReactNode {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="shrink-0 text-xs text-content-muted">{label}</dt>
+      <dd className={`truncate text-right text-xs font-medium text-content ${valueClass}`}>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 function ContextPanel({
   conversationId,
   allTags,
@@ -407,16 +467,34 @@ function ContextPanel({
   allTags: string[];
 }): ReactNode {
   const { data: conversation } = useConversation(conversationId);
+  const { data: propertiesData } = useProperties({});
   const update = useUpdateConversation(conversationId ?? '');
   const aiAssist = useAiAssist();
   const [prompt, setPrompt] = useState('');
   const [answer, setAnswer] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [notesDraft, setNotesDraft] = useState('');
+  const [notesSaved, setNotesSaved] = useState(false);
 
   useEffect(() => {
     setAnswer('');
     setPrompt('');
+    setNotesSaved(false);
   }, [conversationId]);
+
+  // Carga las notas cuando llega la conversación seleccionada.
+  const loadedId = conversation?.id;
+  useEffect(() => {
+    if (loadedId && loadedId === conversationId) {
+      setNotesDraft(conversation?.notes ?? '');
+    }
+  }, [conversationId, loadedId]);
+
+  const saveNotes = async (): Promise<void> => {
+    await update.mutateAsync({ notes: notesDraft.trim() || null });
+    setNotesSaved(true);
+    setTimeout(() => setNotesSaved(false), 2000);
+  };
 
   const ask = async (customPrompt?: string): Promise<void> => {
     const p = customPrompt ?? prompt;
@@ -439,45 +517,147 @@ function ContextPanel({
     void update.mutateAsync({ tags: tags.filter((x) => x !== t) });
   };
 
+  const property = conversation?.property;
+
   return (
     <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto xl:flex">
-      {/* Cliente */}
+      {/* Datos del contacto */}
       <div className="rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1">
         <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-content-muted">
-          <UserRound className="h-4 w-4" /> Contacto
+          <UserRound className="h-4 w-4" /> Datos del contacto
         </p>
+        <dl className="space-y-1.5">
+          <InfoRow label="Nombre" value={conversation?.contactName ?? '—'} />
+          <InfoRow label="Teléfono" value={conversation?.contactHandle ?? '—'} />
+          {conversation?.client ? (
+            <>
+              {conversation.client.email && (
+                <InfoRow label="Email" value={conversation.client.email} />
+              )}
+              <InfoRow
+                label="Interés"
+                value={temperatureLabel[conversation.client.temperature]?.label ?? '—'}
+                valueClass={temperatureLabel[conversation.client.temperature]?.className}
+              />
+            </>
+          ) : null}
+        </dl>
         {conversation?.client ? (
-          <div className="space-y-2">
-            <Link
-              href={`/clients/${conversation.client.id}`}
-              className="text-sm font-semibold text-content hover:text-brand-deep"
-            >
-              {conversation.client.firstName} {conversation.client.lastName}
-            </Link>
-            <p
-              className={`text-xs font-medium ${temperatureLabel[conversation.client.temperature]?.className}`}
-            >
-              Interés {temperatureLabel[conversation.client.temperature]?.label}
-            </p>
-            {conversation.client.phone && (
-              <p className="text-xs text-content-muted">{conversation.client.phone}</p>
+          <Link
+            href={`/clients/${conversation.client.id}`}
+            className="mt-2 inline-block text-xs font-medium text-brand-deep hover:underline"
+          >
+            Ver ficha completa →
+          </Link>
+        ) : (
+          <p className="mt-2 text-xs text-content-muted">
+            Aún no está vinculado a un cliente del CRM.
+          </p>
+        )}
+      </div>
+
+      {/* Propiedad de interés */}
+      <div className="rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1">
+        <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-content-muted">
+          <Building2 className="h-4 w-4" /> Propiedad de interés
+        </p>
+        {property ? (
+          <div className="space-y-3">
+            {property.media.length > 0 && (
+              <>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-content-muted">
+                  Galería · {property.media.length} foto{property.media.length === 1 ? '' : 's'}
+                </p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {property.media.slice(0, 8).map((m) => (
+                    <Link
+                      key={m.id}
+                      href={`/properties/${property.id}`}
+                      className="relative aspect-square overflow-hidden rounded-md"
+                    >
+                      <Image
+                        src={m.url}
+                        alt={property.title}
+                        fill
+                        sizes="80px"
+                        className="object-cover transition hover:scale-105"
+                      />
+                    </Link>
+                  ))}
+                </div>
+              </>
             )}
-            {conversation.client.email && (
-              <p className="text-xs text-content-muted">{conversation.client.email}</p>
-            )}
+            <dl className="space-y-1.5">
+              <InfoRow label="Código" value={property.code} valueClass="text-brand-deep" />
+              <InfoRow label="Nombre" value={property.title} />
+              <InfoRow label="Tipo" value={property.propertyType ?? '—'} />
+              <InfoRow
+                label="Estado"
+                value={propertyStatusLabel[property.status] ?? property.status}
+              />
+              {property.bedrooms != null && (
+                <InfoRow label="Habitaciones" value={`${property.bedrooms} hab.`} />
+              )}
+              {property.bathrooms != null && (
+                <InfoRow label="Baños" value={`${property.bathrooms} baños`} />
+              )}
+              <InfoRow
+                label="Precio"
+                value={formatMoney(property.price, property.currency)}
+                valueClass="font-semibold text-brand-deep"
+              />
+            </dl>
             <Link
-              href={`/clients/${conversation.client.id}`}
+              href={`/properties/${property.id}`}
               className="inline-block text-xs font-medium text-brand-deep hover:underline"
             >
-              Ver ficha completa →
+              Ver propiedad →
             </Link>
           </div>
         ) : (
-          <p className="text-sm text-content-muted">
-            {conversation?.contactName ?? 'Sin contacto'} — aún no está vinculado a un cliente del
-            CRM.
+          <p className="text-xs text-content-muted">
+            Vincula la propiedad de la que habla este contacto.
           </p>
         )}
+        <select
+          value={property?.id ?? ''}
+          onChange={(e) => void update.mutateAsync({ propertyId: e.target.value || null })}
+          disabled={!conversationId}
+          className="mt-3 h-9 w-full rounded-lg border border-border bg-surface-sunken px-2.5 text-xs text-content focus-visible:border-brand focus-visible:outline-none"
+        >
+          <option value="">— Sin propiedad —</option>
+          {(propertiesData?.items ?? []).map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.code} · {p.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Notas */}
+      <div className="rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1">
+        <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-content-muted">
+          <StickyNote className="h-4 w-4" /> Notas
+        </p>
+        <textarea
+          value={notesDraft}
+          onChange={(e) => setNotesDraft(e.target.value)}
+          rows={3}
+          disabled={!conversationId}
+          placeholder="Apuntes internos sobre este contacto…"
+          className="w-full resize-y rounded-lg border border-border bg-surface-sunken px-3 py-2 text-sm text-content placeholder:text-content-muted focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[11px] text-success">{notesSaved ? '✓ Guardado' : ''}</span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void saveNotes()}
+            disabled={!conversationId || update.isPending}
+          >
+            Guardar nota
+          </Button>
+        </div>
       </div>
 
       {/* Etiquetas */}

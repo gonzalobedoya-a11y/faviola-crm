@@ -15,6 +15,8 @@ export const updateConversationSchema = z.object({
   status: z.enum(['OPEN', 'PENDING', 'CLOSED']).optional(),
   tags: z.array(z.string()).optional(),
   clientId: z.string().uuid().nullable().optional(),
+  propertyId: z.string().uuid().nullable().optional(),
+  notes: z.string().nullable().optional(),
 });
 
 export const aiAssistSchema = z.object({

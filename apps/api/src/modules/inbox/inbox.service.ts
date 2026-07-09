@@ -83,6 +83,26 @@ export class InboxService {
             temperature: true,
           },
         },
+        property: {
+          select: {
+            id: true,
+            code: true,
+            title: true,
+            propertyType: true,
+            status: true,
+            price: true,
+            currency: true,
+            district: true,
+            bedrooms: true,
+            bathrooms: true,
+            media: {
+              where: { type: 'IMAGE' },
+              orderBy: [{ isCover: 'desc' }, { order: 'asc' }],
+              take: 12,
+              select: { id: true, url: true },
+            },
+          },
+        },
         messages: { orderBy: { createdAt: 'asc' } },
       },
     });
@@ -115,12 +135,21 @@ export class InboxService {
 
   async updateConversation(tenantId: string, id: string, dto: UpdateConversationDto) {
     await this.getOrThrow(tenantId, id);
+    if (dto.propertyId) {
+      const property = await this.prisma.property.findFirst({
+        where: { id: dto.propertyId, tenantId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!property) throw new NotFoundException('Propiedad no encontrada');
+    }
     return this.prisma.conversation.update({
       where: { id },
       data: {
         status: dto.status,
         tags: dto.tags,
         clientId: dto.clientId === undefined ? undefined : dto.clientId,
+        propertyId: dto.propertyId === undefined ? undefined : dto.propertyId,
+        notes: dto.notes === undefined ? undefined : dto.notes,
       },
       include: {
         client: { select: { id: true, firstName: true, lastName: true, temperature: true } },
@@ -183,6 +212,16 @@ export class InboxService {
         where: { id: conversationId, tenantId },
         include: {
           client: { select: { firstName: true, lastName: true, temperature: true } },
+          property: {
+            select: {
+              title: true,
+              district: true,
+              price: true,
+              currency: true,
+              propertyType: true,
+              status: true,
+            },
+          },
           messages: { orderBy: { createdAt: 'asc' }, take: 20 },
         },
       });
@@ -193,6 +232,14 @@ export class InboxService {
           lines.push(
             `Cliente en CRM: ${conversation.client.firstName} ${conversation.client.lastName} · interés ${conversation.client.temperature}`,
           );
+        }
+        if (conversation.property) {
+          lines.push(
+            `Propiedad de interés: ${conversation.property.title} (${conversation.property.propertyType ?? 'Inmueble'} en ${conversation.property.district ?? 'Arequipa'}) · ${conversation.property.currency} ${conversation.property.price.toLocaleString('es-PE')} · estado ${conversation.property.status}`,
+          );
+        }
+        if (conversation.notes) {
+          lines.push(`Notas internas de Faviola: ${conversation.notes}`);
         }
         lines.push('Historial:');
         for (const m of conversation.messages) {
@@ -257,6 +304,13 @@ export class InboxService {
       select: { id: true, firstName: true, lastName: true },
     });
 
+    const properties = await this.prisma.property.findMany({
+      where: { tenantId, deletedAt: null, status: 'AVAILABLE' },
+      orderBy: { createdAt: 'asc' },
+      take: 4,
+      select: { id: true },
+    });
+
     const now = Date.now();
     const min = (n: number) => new Date(now - n * 60000);
 
@@ -265,6 +319,7 @@ export class InboxService {
       contactName: string;
       contactHandle: string;
       clientId?: string;
+      propertyId?: string;
       status: 'OPEN' | 'PENDING' | 'CLOSED';
       tags: string[];
       unread: number;
@@ -280,6 +335,7 @@ export class InboxService {
           : 'Lucía Fernández',
         contactHandle: '+51 981 445 566',
         clientId: clients[0]?.id,
+        propertyId: properties[0]?.id,
         status: 'OPEN',
         tags: ['Comprador', 'Yanahuara'],
         unread: 2,
@@ -308,6 +364,7 @@ export class InboxService {
         contactName: 'Sofía Mendoza',
         contactHandle: '@sofi.mendoza',
         clientId: clients[3]?.id,
+        propertyId: properties[3]?.id,
         status: 'OPEN',
         tags: ['Instagram', 'Premium'],
         unread: 1,
@@ -331,6 +388,7 @@ export class InboxService {
         contactName: 'Jorge Ramírez',
         contactHandle: 'Jorge Ramírez',
         clientId: clients[1]?.id,
+        propertyId: properties[1]?.id,
         status: 'PENDING',
         tags: ['Casa', 'Cayma'],
         unread: 0,
@@ -353,6 +411,7 @@ export class InboxService {
         contactName: 'Andrea Pinto',
         contactHandle: '+51 983 667 788',
         clientId: clients[2]?.id,
+        propertyId: properties[2]?.id,
         status: 'OPEN',
         tags: ['Primer depa'],
         unread: 1,
@@ -401,6 +460,7 @@ export class InboxService {
           contactName: s.contactName,
           contactHandle: s.contactHandle,
           clientId: s.clientId,
+          propertyId: s.propertyId,
           status: s.status,
           tags: s.tags,
           unread: s.unread,

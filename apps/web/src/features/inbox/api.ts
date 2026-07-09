@@ -61,6 +61,8 @@ export function useUpdateConversation(id: string) {
       status?: ConversationDetail['status'];
       tags?: string[];
       clientId?: string | null;
+      propertyId?: string | null;
+      notes?: string | null;
     }) => httpClient.patch<ConversationDetail>(`/inbox/conversations/${id}`, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: inboxKeys.conversation(id) });

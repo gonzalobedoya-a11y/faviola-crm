@@ -310,13 +310,14 @@ model Property {
   updatedAt     DateTime       @updatedAt
   deletedAt     DateTime?
 
-  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  agent   User            @relation(fields: [agentId], references: [id], onDelete: Restrict)
-  owner   Client?         @relation(fields: [ownerClientId], references: [id], onDelete: SetNull)
-  media   PropertyMedia[]
-  matches Match[]
-  deals   Deal[]
-  visits  Visit[]
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  agent         User            @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  owner         Client?         @relation(fields: [ownerClientId], references: [id], onDelete: SetNull)
+  media         PropertyMedia[]
+  matches       Match[]
+  deals         Deal[]
+  visits        Visit[]
+  conversations Conversation[]
 
   @@unique([tenantId, code])
   @@index([tenantId, status])
@@ -626,8 +627,10 @@ model Conversation {
   contactName   String
   contactHandle String?
   clientId      String?
+  propertyId    String?
   status        ConversationStatus @default(OPEN)
   tags          String[]
+  notes         String?
   lastPreview   String?
   lastMessageAt DateTime           @default(now())
   unread        Int                @default(0)
@@ -636,6 +639,7 @@ model Conversation {
 
   tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   client   Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  property Property?      @relation(fields: [propertyId], references: [id], onDelete: SetNull)
   messages InboxMessage[]
 
   @@index([tenantId, status])
