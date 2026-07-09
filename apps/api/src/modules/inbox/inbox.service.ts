@@ -228,9 +228,38 @@ export class InboxService {
     };
   }
 
+  /** Instrucciones del asistente (conocimiento del negocio) — guardadas en tenant.settings. */
+  async getAiSettings(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true },
+    });
+    const settings = (tenant?.settings ?? {}) as Record<string, unknown>;
+    return {
+      instructions: typeof settings.aiInstructions === 'string' ? settings.aiInstructions : '',
+      configured: this.ai.isConfigured,
+      model: this.ai.model,
+    };
+  }
+
+  async updateAiSettings(tenantId: string, instructions: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true },
+    });
+    const settings = { ...((tenant?.settings ?? {}) as Record<string, unknown>) };
+    settings.aiInstructions = instructions;
+    await this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: { settings: settings as Prisma.InputJsonObject },
+    });
+    return { instructions };
+  }
+
   /** Asistente Claude: responde una consulta o sugiere una respuesta al cliente. */
   async assist(tenantId: string, dto: AiAssistDto) {
     const context = await this.buildContext(tenantId, dto.conversationId);
+    const { instructions } = await this.getAiSettings(tenantId);
 
     const system = [
       'Eres el asistente virtual de "Faviola Velarde — Asesoría Patrimonial", una asesora inmobiliaria de Arequipa (Perú).',
@@ -238,6 +267,13 @@ export class InboxService {
       'Responde en español, con tono cálido, cercano y profesional. Sé concreto y breve (no más de un par de párrafos).',
       'Usa la información del CRM que se te da a continuación. Si no tienes un dato, dilo con naturalidad y ofrece coordinar una llamada o visita.',
       'Nunca inventes precios ni propiedades que no aparezcan en el contexto.',
+      ...(instructions.trim()
+        ? [
+            '',
+            '# Instrucciones y conocimiento del negocio (definidos por Faviola)',
+            instructions.trim(),
+          ]
+        : []),
       '',
       context,
     ].join('\n');
@@ -257,23 +293,28 @@ export class InboxService {
     const properties = await this.prisma.property.findMany({
       where: { tenantId, deletedAt: null, status: 'AVAILABLE' },
       orderBy: { createdAt: 'desc' },
-      take: 8,
+      take: 10,
       select: {
+        code: true,
         title: true,
         district: true,
+        address: true,
         price: true,
         currency: true,
         operation: true,
         bedrooms: true,
         bathrooms: true,
+        area: true,
         propertyType: true,
       },
     });
 
-    const lines: string[] = ['# Propiedades disponibles'];
+    const lines: string[] = ['# Propiedades disponibles (datos exactos del CRM)'];
     for (const p of properties) {
       lines.push(
-        `- ${p.title} · ${p.propertyType ?? 'Inmueble'} en ${p.district ?? 'Arequipa'} · ${p.operation === 'RENT' ? 'Alquiler' : 'Venta'} · ${p.currency} ${p.price.toLocaleString('es-PE')} · ${p.bedrooms ?? '-'} dorm / ${p.bathrooms ?? '-'} baños`,
+        `- [${p.code}] ${p.title} · ${p.propertyType ?? 'Inmueble'} · ${p.operation === 'RENT' ? 'Alquiler' : 'Venta'} · ${p.currency} ${p.price.toLocaleString('es-PE')}` +
+          ` · ${p.bedrooms ?? '-'} dorm / ${p.bathrooms ?? '-'} baños · ${p.area ? `${p.area} m²` : 'área s/d'}` +
+          ` · Dirección: ${p.address ? `${p.address}, ` : ''}${p.district ?? 'Arequipa'}`,
       );
     }
     if (properties.length === 0) lines.push('- (Sin propiedades cargadas todavía)');
@@ -285,12 +326,18 @@ export class InboxService {
           client: { select: { firstName: true, lastName: true, temperature: true } },
           property: {
             select: {
+              code: true,
               title: true,
               district: true,
+              address: true,
               price: true,
               currency: true,
               propertyType: true,
               status: true,
+              bedrooms: true,
+              bathrooms: true,
+              area: true,
+              description: true,
             },
           },
           messages: { orderBy: { createdAt: 'asc' }, take: 20 },
@@ -305,9 +352,13 @@ export class InboxService {
           );
         }
         if (conversation.property) {
+          const prop = conversation.property;
           lines.push(
-            `Propiedad de interés: ${conversation.property.title} (${conversation.property.propertyType ?? 'Inmueble'} en ${conversation.property.district ?? 'Arequipa'}) · ${conversation.property.currency} ${conversation.property.price.toLocaleString('es-PE')} · estado ${conversation.property.status}`,
+            `Propiedad de interés [${prop.code}]: ${prop.title} · ${prop.propertyType ?? 'Inmueble'} · ${prop.currency} ${prop.price.toLocaleString('es-PE')} · estado ${prop.status}` +
+              ` · ${prop.bedrooms ?? '-'} dormitorios / ${prop.bathrooms ?? '-'} baños · ${prop.area ? `${prop.area} m²` : 'área s/d'}` +
+              ` · Dirección exacta: ${prop.address ? `${prop.address}, ` : ''}${prop.district ?? 'Arequipa'}`,
           );
+          if (prop.description) lines.push(`Descripción: ${prop.description}`);
         }
         if (conversation.notes) {
           lines.push(`Notas internas de Faviola: ${conversation.notes}`);

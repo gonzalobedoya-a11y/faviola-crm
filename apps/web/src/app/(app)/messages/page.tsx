@@ -5,6 +5,7 @@ import {
   Bot,
   Building2,
   Check,
+  GraduationCap,
   Loader2,
   Search,
   Send,
@@ -21,9 +22,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   useAiAssist,
+  useAiSettings,
   useConversation,
   useInbox,
   useSendMessage,
+  useUpdateAiSettings,
   useUpdateConversation,
 } from '@/features/inbox/api';
 import { ChannelLogo, channelMeta } from '@/features/inbox/channel';
@@ -768,8 +771,72 @@ function ContextPanel({
             {answer}
           </div>
         )}
+        <AiTraining />
       </div>
     </aside>
+  );
+}
+
+function AiTraining(): ReactNode {
+  const { data } = useAiSettings();
+  const update = useUpdateAiSettings();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [saved, setSaved] = useState(false);
+  const loaded = data?.instructions;
+
+  useEffect(() => {
+    if (typeof loaded === 'string') setText(loaded);
+  }, [loaded]);
+
+  const save = async (): Promise<void> => {
+    await update.mutateAsync(text);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="mt-3 border-t border-[#4c5b8a]/20 pt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between text-xs font-semibold text-[#4c5b8a] dark:text-[#aab4d4]"
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <GraduationCap className="h-3.5 w-3.5" />
+          Entrenar al asistente
+        </span>
+        <span>{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="mt-2">
+          <p className="mb-2 text-[11px] text-content-muted">
+            Escribe conocimiento del negocio que Claude usará siempre: horarios, formas de pago,
+            financiamiento, comisión, tono de respuesta, políticas, etc.
+          </p>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={5}
+            placeholder={
+              'Ej. Atiendo de lunes a sábado de 9am a 7pm. Trabajo con crédito hipotecario de BCP e Interbank. Mi comisión es 3%. Siempre ofrezco agendar una visita.'
+            }
+            className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus-visible:border-brand focus-visible:outline-none"
+          />
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-[11px] text-success">{saved ? '✓ Guardado' : ''}</span>
+            <Button
+              variant="brand"
+              size="sm"
+              onClick={() => void save()}
+              disabled={update.isPending}
+            >
+              Guardar entrenamiento
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

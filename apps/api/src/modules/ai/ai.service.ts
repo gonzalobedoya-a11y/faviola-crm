@@ -25,6 +25,10 @@ export class AiService {
     return Boolean(this.config.get('ANTHROPIC_API_KEY', { infer: true }));
   }
 
+  get model(): string {
+    return this.config.get('ANTHROPIC_MODEL', { infer: true });
+  }
+
   async complete({ system, prompt, maxTokens = 700 }: CompleteOptions): Promise<{
     text: string;
     configured: boolean;

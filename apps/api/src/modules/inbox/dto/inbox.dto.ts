@@ -23,12 +23,17 @@ export const leadsDashboardSchema = z.object({
   days: z.coerce.number().int().min(1).max(90).default(30),
 });
 
+export const aiSettingsSchema = z.object({
+  instructions: z.string().max(6000, 'Máximo 6000 caracteres'),
+});
+
 export const aiAssistSchema = z.object({
   conversationId: z.string().uuid().optional(),
   prompt: z.string().optional(),
   mode: z.enum(['reply', 'ask']).default('ask'),
 });
 
+export type AiSettingsDto = z.infer<typeof aiSettingsSchema>;
 export type LeadsDashboardDto = z.infer<typeof leadsDashboardSchema>;
 export type ListConversationsDto = z.infer<typeof listConversationsSchema>;
 export type SendMessageDto = z.infer<typeof sendMessageSchema>;

@@ -85,3 +85,25 @@ export function useAiAssist() {
       httpClient.post<AiResult>('/inbox/ai', input),
   });
 }
+
+interface AiSettings {
+  instructions: string;
+  configured: boolean;
+  model: string;
+}
+
+export function useAiSettings() {
+  return useQuery({
+    queryKey: ['inbox', 'ai-settings'] as const,
+    queryFn: () => httpClient.get<AiSettings>('/inbox/ai/settings'),
+  });
+}
+
+export function useUpdateAiSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (instructions: string) =>
+      httpClient.patch<{ instructions: string }>('/inbox/ai/settings', { instructions }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inbox', 'ai-settings'] }),
+  });
+}

@@ -9,6 +9,8 @@ import type { JwtPayload } from '../auth/auth.types';
 import {
   type AiAssistDto,
   aiAssistSchema,
+  type AiSettingsDto,
+  aiSettingsSchema,
   type LeadsDashboardDto,
   leadsDashboardSchema,
   type ListConversationsDto,
@@ -68,6 +70,21 @@ export class InboxController {
     @Body(new ZodValidationPipe(updateConversationSchema)) dto: UpdateConversationDto,
   ) {
     return this.inbox.updateConversation(user.tenantId, id, dto);
+  }
+
+  @Get('ai/settings')
+  @RequirePermissions('ai.use')
+  getAiSettings(@CurrentUser() user: JwtPayload) {
+    return this.inbox.getAiSettings(user.tenantId);
+  }
+
+  @Patch('ai/settings')
+  @RequirePermissions('ai.use')
+  updateAiSettings(
+    @CurrentUser() user: JwtPayload,
+    @Body(new ZodValidationPipe(aiSettingsSchema)) dto: AiSettingsDto,
+  ) {
+    return this.inbox.updateAiSettings(user.tenantId, dto.instructions);
   }
 
   @Post('ai')
