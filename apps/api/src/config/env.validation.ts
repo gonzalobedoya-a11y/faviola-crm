@@ -23,6 +23,11 @@ export const envSchema = z.object({
   MINIO_ACCESS_KEY: z.string().default('minioadmin'),
   MINIO_SECRET_KEY: z.string().default('minioadmin'),
   MINIO_BUCKET: z.string().default('faviola'),
+
+  // Asistente IA (Claude / Anthropic). Opcional: sin key el asistente
+  // responde con un aviso para configurarla, sin romper la app.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default('claude-sonnet-5'),
 });
 
 export type Env = z.infer<typeof envSchema>;

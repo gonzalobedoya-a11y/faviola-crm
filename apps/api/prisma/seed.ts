@@ -29,6 +29,9 @@ const PERMISSIONS: Array<[string, string]> = [
   ['academy.read', 'Ver Academia FV'],
   ['academy.create', 'Crear programas y alumnos de Academia FV'],
   ['academy.update', 'Editar Academia FV'],
+  ['inbox.read', 'Ver bandeja de mensajes'],
+  ['inbox.write', 'Responder mensajes'],
+  ['ai.use', 'Usar el asistente Claude'],
   ['users.manage', 'Gestionar usuarios'],
   ['roles.manage', 'Gestionar roles'],
   ['settings.manage', 'Gestionar configuración'],
@@ -64,6 +67,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'academy.read',
     'academy.create',
     'academy.update',
+    'inbox.read',
+    'inbox.write',
+    'ai.use',
   ],
   ASISTENTE: [
     'clients.read',
@@ -80,6 +86,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'academy.read',
     'academy.create',
     'academy.update',
+    'inbox.read',
+    'inbox.write',
+    'ai.use',
   ],
 };
 

@@ -15,6 +15,7 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DealsModule } from './modules/deals/deals.module';
 import { HealthModule } from './modules/health/health.module';
+import { InboxModule } from './modules/inbox/inbox.module';
 import { MatchingModule } from './modules/matching/matching.module';
 import { PropertiesModule } from './modules/properties/properties.module';
 import { VisitsModule } from './modules/visits/visits.module';
@@ -46,6 +47,7 @@ import { VisitsModule } from './modules/visits/visits.module';
     DealsModule,
     VisitsModule,
     AcademyModule,
+    InboxModule,
     DashboardModule,
     HealthModule,
   ],
