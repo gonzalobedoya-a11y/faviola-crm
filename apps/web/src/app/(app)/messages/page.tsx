@@ -1,14 +1,11 @@
 'use client';
 
 import {
+  BarChart3,
   Bot,
   Building2,
   Check,
-  Facebook,
-  Instagram,
   Loader2,
-  MessageCircle,
-  Music2,
   Search,
   Send,
   Sparkles,
@@ -29,25 +26,15 @@ import {
   useSendMessage,
   useUpdateConversation,
 } from '@/features/inbox/api';
-import { useProperties } from '@/features/properties/api';
-import { formatMoney } from '@/lib/format';
+import { ChannelLogo, channelMeta } from '@/features/inbox/channel';
 import type {
   ChannelStatus,
   ConversationStatus,
   InboxChannel,
   InboxMessage,
 } from '@/features/inbox/types';
-
-const channelMeta: Record<
-  InboxChannel,
-  { label: string; icon: typeof MessageCircle; color: string; bg: string }
-> = {
-  WHATSAPP: { label: 'WhatsApp', icon: MessageCircle, color: '#128C4B', bg: '#e6f5ec' },
-  INSTAGRAM: { label: 'Instagram', icon: Instagram, color: '#C13584', bg: '#fbe9f3' },
-  FACEBOOK: { label: 'Facebook', icon: Facebook, color: '#1877F2', bg: '#e7f0fe' },
-  TIKTOK: { label: 'TikTok', icon: Music2, color: '#1b1a18', bg: '#efece6' },
-  INTERNAL: { label: 'Interno', icon: MessageCircle, color: '#a9884e', bg: '#f1e7d4' },
-};
+import { useProperties } from '@/features/properties/api';
+import { formatMoney } from '@/lib/format';
 
 const statusLabel: Record<ConversationStatus, string> = {
   OPEN: 'Abierta',
@@ -109,7 +96,6 @@ export default function MessagesPage(): ReactNode {
         <div className="flex flex-wrap items-center gap-2">
           {(data?.accounts ?? []).map((account) => {
             const meta = channelMeta[account.channel];
-            const Icon = meta.icon;
             const connected = account.status === 'CONNECTED';
             return (
               <span
@@ -122,7 +108,7 @@ export default function MessagesPage(): ReactNode {
                   background: connected ? meta.bg : 'transparent',
                 }}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <ChannelLogo channel={account.channel} size={16} />
                 {meta.label}
                 <span
                   className="h-1.5 w-1.5 rounded-full"
@@ -131,6 +117,12 @@ export default function MessagesPage(): ReactNode {
               </span>
             );
           })}
+          <Button asChild variant="brand" size="sm">
+            <Link href="/messages/dashboard">
+              <BarChart3 className="h-4 w-4" />
+              Dashboard de leads
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -161,6 +153,7 @@ export default function MessagesPage(): ReactNode {
               </FilterChip>
               {(['WHATSAPP', 'INSTAGRAM', 'FACEBOOK', 'TIKTOK'] as InboxChannel[]).map((c) => (
                 <FilterChip key={c} active={channel === c} onClick={() => setChannel(c)}>
+                  <ChannelLogo channel={c} size={13} />
                   {channelMeta[c].label}
                 </FilterChip>
               ))}
@@ -175,7 +168,6 @@ export default function MessagesPage(): ReactNode {
             ) : (
               conversations.map((c) => {
                 const meta = channelMeta[c.channel];
-                const Icon = meta.icon;
                 const active = c.id === selectedId;
                 return (
                   <button
@@ -193,11 +185,8 @@ export default function MessagesPage(): ReactNode {
                       >
                         {c.contactName.slice(0, 1)}
                       </span>
-                      <span
-                        className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-surface-raised"
-                        style={{ background: meta.color }}
-                      >
-                        <Icon className="h-2.5 w-2.5 text-white" />
+                      <span className="absolute -bottom-1 -right-1 rounded-[30%] bg-surface-raised p-0.5 shadow-elevation-1">
+                        <ChannelLogo channel={c.channel} size={16} />
                       </span>
                     </span>
                     <span className="min-w-0 flex-1">
@@ -262,7 +251,7 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
         active
           ? 'bg-brand text-on-brand'
           : 'bg-surface-sunken text-content-secondary hover:bg-brand-tint hover:text-brand-deep'
@@ -325,7 +314,8 @@ function Thread({
           <p className="truncate text-sm font-semibold text-content">
             {conversation?.contactName ?? '…'}
           </p>
-          <p className="truncate text-xs text-content-muted">
+          <p className="flex items-center gap-1.5 truncate text-xs text-content-muted">
+            {conversation && <ChannelLogo channel={conversation.channel} size={14} />}
             {meta.label} · {conversation?.contactHandle ?? ''}
           </p>
         </div>

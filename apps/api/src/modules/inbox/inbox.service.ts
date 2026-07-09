@@ -157,6 +157,77 @@ export class InboxService {
     });
   }
 
+  /** Dashboard de leads (estilo Propify): temperatura, canales, fuentes, respuesta. */
+  async leadsDashboard(tenantId: string, days: number) {
+    const since =
+      days === 1
+        ? new Date(new Date().setHours(0, 0, 0, 0))
+        : new Date(Date.now() - days * 86400000);
+
+    const [conversations, buyers] = await this.prisma.$transaction([
+      this.prisma.conversation.findMany({
+        where: { tenantId },
+        select: {
+          channel: true,
+          status: true,
+          unread: true,
+          createdAt: true,
+          lastMessageAt: true,
+          client: { select: { temperature: true } },
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { author: true },
+          },
+        },
+      }),
+      this.prisma.client.findMany({
+        where: { tenantId, deletedAt: null, type: { in: ['BUYER', 'BOTH'] } },
+        select: {
+          temperature: true,
+          source: true,
+          createdAt: true,
+          requirement: { select: { budgetMax: true } },
+        },
+      }),
+    ]);
+
+    const count = <T extends string>(items: T[]): Record<string, number> => {
+      const acc: Record<string, number> = {};
+      for (const item of items) acc[item] = (acc[item] ?? 0) + 1;
+      return acc;
+    };
+
+    const active = conversations.filter((c) => c.status !== 'CLOSED');
+    const lastAuthor = conversations
+      .map((c) => c.messages[0]?.author)
+      .filter((a): a is NonNullable<typeof a> => Boolean(a));
+    const budgets = buyers
+      .map((b) => b.requirement?.budgetMax)
+      .filter((b): b is number => typeof b === 'number' && b > 0);
+
+    return {
+      summary: {
+        activeConversations: active.length,
+        newInPeriod: conversations.filter((c) => c.createdAt >= since).length,
+        managedInPeriod: conversations.filter((c) => c.lastMessageAt >= since).length,
+        pendingResponse: conversations.filter((c) => c.messages[0]?.author === 'CONTACT').length,
+        unread: conversations.reduce((sum, c) => sum + c.unread, 0),
+        hotLeads: buyers.filter((b) => b.temperature === 'HOT').length,
+        withBudget: budgets.length,
+        avgBudget: budgets.length
+          ? Math.round(budgets.reduce((a, b) => a + b, 0) / budgets.length)
+          : 0,
+        totalLeads: buyers.length,
+      },
+      temperature: count(buyers.map((b) => b.temperature)),
+      lastMessageBy: count(lastAuthor),
+      byChannel: count(conversations.map((c) => c.channel)),
+      byStatus: count(conversations.map((c) => c.status)),
+      bySource: count(buyers.map((b) => b.source ?? 'Sin fuente')),
+    };
+  }
+
   /** Asistente Claude: responde una consulta o sugiere una respuesta al cliente. */
   async assist(tenantId: string, dto: AiAssistDto) {
     const context = await this.buildContext(tenantId, dto.conversationId);

@@ -75,6 +75,25 @@ export interface AiResult {
   configured: boolean;
 }
 
+export interface LeadsDashboard {
+  summary: {
+    activeConversations: number;
+    newInPeriod: number;
+    managedInPeriod: number;
+    pendingResponse: number;
+    unread: number;
+    hotLeads: number;
+    withBudget: number;
+    avgBudget: number;
+    totalLeads: number;
+  };
+  temperature: Record<string, number>;
+  lastMessageBy: Record<string, number>;
+  byChannel: Record<string, number>;
+  byStatus: Record<string, number>;
+  bySource: Record<string, number>;
+}
+
 export interface InboxFilters {
   channel?: InboxChannel;
   status?: ConversationStatus;

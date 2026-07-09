@@ -8,6 +8,7 @@ import type {
   InboxFilters,
   InboxMessage,
   InboxOverview,
+  LeadsDashboard,
 } from './types';
 
 const inboxKeys = {
@@ -31,6 +32,13 @@ export function useInbox(filters: InboxFilters) {
     queryKey: inboxKeys.overview(filters),
     queryFn: () => httpClient.get<InboxOverview>(`/inbox${toQuery(filters)}`),
     refetchInterval: 20000,
+  });
+}
+
+export function useLeadsDashboard(days: number) {
+  return useQuery({
+    queryKey: ['inbox', 'leads-dashboard', days] as const,
+    queryFn: () => httpClient.get<LeadsDashboard>(`/inbox/leads-dashboard?days=${days}`),
   });
 }
 

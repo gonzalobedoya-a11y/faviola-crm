@@ -9,6 +9,8 @@ import type { JwtPayload } from '../auth/auth.types';
 import {
   type AiAssistDto,
   aiAssistSchema,
+  type LeadsDashboardDto,
+  leadsDashboardSchema,
   type ListConversationsDto,
   listConversationsSchema,
   type SendMessageDto,
@@ -31,6 +33,15 @@ export class InboxController {
     @Query(new ZodValidationPipe(listConversationsSchema)) query: ListConversationsDto,
   ) {
     return this.inbox.overview(user.tenantId, query);
+  }
+
+  @Get('leads-dashboard')
+  @RequirePermissions('inbox.read')
+  leadsDashboard(
+    @CurrentUser() user: JwtPayload,
+    @Query(new ZodValidationPipe(leadsDashboardSchema)) query: LeadsDashboardDto,
+  ) {
+    return this.inbox.leadsDashboard(user.tenantId, query.days);
   }
 
   @Get('conversations/:id')
