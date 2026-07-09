@@ -224,7 +224,7 @@ export class InboxService {
       lastMessageBy: count(lastAuthor),
       byChannel: count(conversations.map((c) => c.channel)),
       byStatus: count(conversations.map((c) => c.status)),
-      bySource: count(buyers.map((b) => b.source ?? 'Sin fuente')),
+      bySource: count(buyers.map((b) => b.source?.trim() || 'Sin fuente')),
     };
   }
 
