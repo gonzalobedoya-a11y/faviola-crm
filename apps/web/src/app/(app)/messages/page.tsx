@@ -10,6 +10,7 @@ import {
   Loader2,
   Search,
   Send,
+  SlidersHorizontal,
   Sparkles,
   StickyNote,
   Tag,
@@ -136,33 +137,54 @@ export default function MessagesPage(): ReactNode {
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[20rem_1fr] xl:grid-cols-[20rem_1fr_20rem]">
         {/* Panel izquierdo: lista */}
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface-raised shadow-elevation-1">
-          <div className="space-y-2 border-b border-border p-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar conversación…"
-                className="h-9 w-full rounded-lg border border-border bg-surface-sunken pl-9 pr-3 text-sm text-content placeholder:text-content-muted focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
+          <div className="space-y-3 border-b border-border bg-surface-raised p-3.5">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Buscar conversación…"
+                  className="h-10 w-full rounded-xl border border-border bg-surface-sunken pl-9 pr-3 text-sm text-content placeholder:text-content-muted transition focus-visible:border-brand focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-xs font-semibold text-brand-deep transition hover:border-brand/50 hover:bg-brand-tint"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtros
+              </button>
             </div>
-            <div className="flex gap-1.5">
-              <FilterChip active={!onlyUnread} onClick={() => setOnlyUnread(false)}>
+            <div className="flex border-b border-border">
+              <ConversationTab active={!onlyUnread} onClick={() => setOnlyUnread(false)}>
                 Todos
-              </FilterChip>
-              <FilterChip active={onlyUnread} onClick={() => setOnlyUnread(true)}>
+              </ConversationTab>
+              <ConversationTab active={onlyUnread} onClick={() => setOnlyUnread(true)}>
                 No leídos{unreadTotal > 0 ? ` (${unreadTotal})` : ''}
-              </FilterChip>
+              </ConversationTab>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              <FilterChip active={!channel} onClick={() => setChannel(undefined)}>
-                Todas
-              </FilterChip>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <ChannelFilterChip
+                active={!channel}
+                onClick={() => setChannel(undefined)}
+                color="var(--brand-deep)"
+                bg="var(--brand-tint)"
+              >
+                <Sparkles className="h-3 w-3" />
+                Todos
+              </ChannelFilterChip>
               {(['WHATSAPP', 'INSTAGRAM', 'FACEBOOK', 'TIKTOK'] as InboxChannel[]).map((c) => (
-                <FilterChip key={c} active={channel === c} onClick={() => setChannel(c)}>
+                <ChannelFilterChip
+                  key={c}
+                  active={channel === c}
+                  onClick={() => setChannel(c)}
+                  color={channelMeta[c].color}
+                  bg={channelMeta[c].bg}
+                >
                   <ChannelLogo channel={c} size={13} />
                   {channelMeta[c].label}
-                </FilterChip>
+                </ChannelFilterChip>
               ))}
             </div>
           </div>
@@ -245,7 +267,7 @@ export default function MessagesPage(): ReactNode {
   );
 }
 
-function FilterChip({
+function ConversationTab({
   active,
   onClick,
   children,
@@ -258,11 +280,40 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+      className={`relative -mb-px px-3 py-2 text-xs font-semibold transition-colors ${
         active
-          ? 'bg-brand text-on-brand'
-          : 'bg-surface-sunken text-content-secondary hover:bg-brand-tint hover:text-brand-deep'
+          ? 'text-brand-deep after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand'
+          : 'text-content-secondary hover:text-brand-deep'
       }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ChannelFilterChip({
+  active,
+  onClick,
+  children,
+  color = 'var(--brand-deep)',
+  bg = 'var(--brand-tint)',
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+  color?: string;
+  bg?: string;
+}): ReactNode {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold transition hover:-translate-y-px hover:shadow-elevation-1"
+      style={{
+        borderColor: active ? color : 'var(--border)',
+        background: active ? bg : 'var(--surface-raised)',
+        color: active ? color : 'var(--content-secondary)',
+      }}
     >
       {children}
     </button>
