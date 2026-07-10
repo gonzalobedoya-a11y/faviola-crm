@@ -4,10 +4,14 @@ import {
   BarChart3,
   Bot,
   Building2,
+  CalendarPlus,
   Check,
   FlaskConical,
   GraduationCap,
+  Handshake,
+  Home,
   Loader2,
+  MessageCircle,
   Search,
   Send,
   SlidersHorizontal,
@@ -41,7 +45,9 @@ import type {
   InboxChannel,
   InboxMessage,
 } from '@/features/inbox/types';
+import { useCreateDeal } from '@/features/deals/api';
 import { useProperties } from '@/features/properties/api';
+import { useCreateVisit } from '@/features/visits/api';
 import { formatMoney } from '@/lib/format';
 
 const statusLabel: Record<ConversationStatus, string> = {
@@ -454,6 +460,23 @@ function Thread({
             placeholder="Escribe tu respuesta…  (Ctrl/⌘+Enter para enviar)"
             className="max-h-32 min-h-[2.75rem] flex-1 resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
+          {conversation?.contactHandle && (
+            <a
+              href={`https://wa.me/${(conversation.contactHandle.replace(/\D/g, '').startsWith('51') ? '' : '51') + conversation.contactHandle.replace(/\D/g, '')}?text=${encodeURIComponent(text.trim())}`}
+              target="_blank"
+              rel="noreferrer"
+              title="Abrir en WhatsApp con este texto (hasta conectar la API oficial)"
+              aria-disabled={!text.trim()}
+              onClick={(e) => {
+                if (!text.trim()) e.preventDefault();
+              }}
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#128C4B] text-white transition hover:bg-[#0f7a40] ${
+                text.trim() ? '' : 'pointer-events-none opacity-40'
+              }`}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </a>
+          )}
           <Button
             variant="brand"
             size="icon"
@@ -616,17 +639,23 @@ function ContextPanel({
   const { data: conversation } = useConversation(conversationId);
   const { data: propertiesData } = useProperties({});
   const update = useUpdateConversation(conversationId ?? '');
+  const sendMessage = useSendMessage(conversationId ?? '');
+  const createVisit = useCreateVisit();
+  const createDeal = useCreateDeal();
   const aiAssist = useAiAssist();
   const [prompt, setPrompt] = useState('');
   const [answer, setAnswer] = useState('');
   const [newTag, setNewTag] = useState('');
   const [notesDraft, setNotesDraft] = useState('');
   const [notesSaved, setNotesSaved] = useState(false);
+  const [visitDate, setVisitDate] = useState(nextBusinessSlot());
+  const [actionMessage, setActionMessage] = useState('');
 
   useEffect(() => {
     setAnswer('');
     setPrompt('');
     setNotesSaved(false);
+    setActionMessage('');
   }, [conversationId]);
 
   // Carga las notas cuando llega la conversación seleccionada.
@@ -665,9 +694,128 @@ function ContextPanel({
   };
 
   const property = conversation?.property;
+  const canCreateFromConversation = Boolean(conversation?.client);
+
+  const createVisitFromConversation = async (): Promise<void> => {
+    if (!conversation?.client) return;
+    await createVisit.mutateAsync({
+      clientId: conversation.client.id,
+      propertyId: property?.id,
+      scheduledAt: new Date(visitDate).toISOString(),
+      durationMin: 60,
+    });
+    setActionMessage('Visita creada en Agenda.');
+  };
+
+  const createDealFromConversation = async (): Promise<void> => {
+    if (!conversation?.client) return;
+    await createDeal.mutateAsync({
+      clientId: conversation.client.id,
+      propertyId: property?.id,
+      value: property?.price,
+      currency: property?.currency ?? 'PEN',
+      stage: 'CONTACTED',
+    });
+    setActionMessage('Negociacion creada en Pipeline.');
+  };
+
+  const sendPropertyFromConversation = async (): Promise<void> => {
+    if (!property) return;
+    const price = formatMoney(property.price, property.currency);
+    const text = [
+      `Te comparto esta propiedad: ${property.title}`,
+      property.district ? `Zona: ${property.district}` : null,
+      `Precio: ${price}`,
+      property.bedrooms ? `Habitaciones: ${property.bedrooms}` : null,
+      property.bathrooms ? `Banos: ${property.bathrooms}` : null,
+      `Codigo: ${property.code}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+    await sendMessage.mutateAsync(text);
+    setActionMessage('Propiedad enviada en la conversacion.');
+  };
 
   return (
     <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto xl:flex">
+      {/* Acciones rapidas */}
+      <div className="rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1">
+        <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-content-muted">
+          <Sparkles className="h-4 w-4" /> Acciones rapidas
+        </p>
+        <div className="grid gap-2">
+          {conversation?.client ? (
+            <Button asChild variant="secondary" size="sm" className="justify-start">
+              <Link href={`/clients/${conversation.client.id}`}>
+                <UserRound className="h-4 w-4" />
+                Abrir ficha del cliente
+              </Link>
+            </Button>
+          ) : (
+            <p className="rounded-lg bg-surface-sunken px-3 py-2 text-xs text-content-muted">
+              Vincula esta conversacion a un cliente para crear visitas y negociaciones.
+            </p>
+          )}
+
+          <label className="grid gap-1">
+            <span className="text-[11px] font-medium text-content-muted">Fecha de visita</span>
+            <input
+              type="datetime-local"
+              value={visitDate}
+              onChange={(e) => setVisitDate(e.target.value)}
+              disabled={!canCreateFromConversation}
+              className="h-9 rounded-lg border border-border bg-surface-sunken px-2.5 text-xs text-content focus-visible:border-brand focus-visible:outline-none disabled:opacity-60"
+            />
+          </label>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="brand"
+              size="sm"
+              onClick={() => void createVisitFromConversation()}
+              disabled={!canCreateFromConversation || createVisit.isPending}
+            >
+              {createVisit.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CalendarPlus className="h-4 w-4" />
+              )}
+              Visita
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void createDealFromConversation()}
+              disabled={!canCreateFromConversation || createDeal.isPending}
+            >
+              {createDeal.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Handshake className="h-4 w-4" />
+              )}
+              Negocio
+            </Button>
+          </div>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            className="justify-start"
+            onClick={() => void sendPropertyFromConversation()}
+            disabled={!property || sendMessage.isPending}
+          >
+            {sendMessage.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Home className="h-4 w-4" />
+            )}
+            Enviar propiedad vinculada
+          </Button>
+
+          {actionMessage && <p className="text-[11px] font-medium text-success">{actionMessage}</p>}
+        </div>
+      </div>
+
       {/* Datos del contacto */}
       <div className="rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1">
         <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-content-muted">
@@ -1094,4 +1242,12 @@ function QuickAsk({ onClick, children }: { onClick: () => void; children: ReactN
       {children}
     </button>
   );
+}
+
+function nextBusinessSlot(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  date.setHours(10, 0, 0, 0);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
 }

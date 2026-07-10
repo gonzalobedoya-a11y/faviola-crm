@@ -6,6 +6,8 @@ import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode } fr
 
 import { Button } from '@/components/ui/button';
 
+const FAVIOLA_WHATSAPP = '51986445884';
+
 interface LeadPayload {
   firstName: string;
   lastName?: string;
@@ -26,7 +28,7 @@ function whatsappLeadUrl(): string {
     'Hola Faviola, acabo de dejar mis datos en la web.',
     'Me gustaría recibir asesoría inmobiliaria.',
   ].join('\n');
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${FAVIOLA_WHATSAPP}?text=${encodeURIComponent(text)}`;
 }
 
 export default function PublicLeadPage(): ReactNode {

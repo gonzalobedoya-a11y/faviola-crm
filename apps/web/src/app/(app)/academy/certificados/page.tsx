@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useRef, useState, type ClipboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useAcademyDashboard } from '@/features/academy/api';
@@ -33,6 +33,18 @@ const MESES = [
   'diciembre',
 ];
 
+const CERTIFICATE_HISTORY_KEY = 'fv-certificate-history';
+
+interface CertificateHistoryItem {
+  id: string;
+  createdAt: string;
+  taller: string;
+  horas: string;
+  modalidad: string;
+  fecha: string;
+  nombres: string[];
+}
+
 function fechaHoy(): string {
   const h = new Date();
   return `${h.getDate()} de ${MESES[h.getMonth()]} del ${h.getFullYear()}`;
@@ -49,6 +61,7 @@ export default function CertificadosPage(): ReactNode {
   const [modalidad, setModalidad] = useState('Presencial');
   const [fecha, setFecha] = useState(fechaHoy());
   const [participantes, setParticipantes] = useState<string[]>(['']);
+  const [history, setHistory] = useState<CertificateHistoryItem[]>([]);
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const nombres = useMemo(
@@ -62,6 +75,23 @@ export default function CertificadosPage(): ReactNode {
       programId ? alumnos.filter((s) => s.enrollments.some((e) => e.program.id === programId)) : [],
     [alumnos, programId],
   );
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(CERTIFICATE_HISTORY_KEY);
+      if (raw) setHistory(JSON.parse(raw) as CertificateHistoryItem[]);
+    } catch {
+      setHistory([]);
+    }
+  }, []);
+
+  function saveHistory(item: CertificateHistoryItem): void {
+    setHistory((prev) => {
+      const next = [item, ...prev].slice(0, 20);
+      window.localStorage.setItem(CERTIFICATE_HISTORY_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
 
   function elegirPrograma(id: string): void {
     setProgramId(id);
@@ -108,13 +138,35 @@ export default function CertificadosPage(): ReactNode {
   }
 
   function imprimirCertificados(): void {
+    const item: CertificateHistoryItem = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      nombres,
+      taller: taller || 'Nombre del taller',
+      horas: horas || '-',
+      modalidad: modalidad || '-',
+      fecha: fecha || '-',
+    };
+    saveHistory(item);
     openCertificatesPrintWindow({
       nombres,
-      taller,
-      horas,
-      modalidad,
-      fecha,
+      taller: item.taller,
+      horas: item.horas,
+      modalidad: item.modalidad,
+      fecha: item.fecha,
       origin: window.location.origin,
+    });
+  }
+
+  function reimprimir(item: CertificateHistoryItem): void {
+    openCertificatesPrintWindow({ ...item, origin: window.location.origin });
+  }
+
+  function borrarHistorial(id: string): void {
+    setHistory((prev) => {
+      const next = prev.filter((item) => item.id !== id);
+      window.localStorage.setItem(CERTIFICATE_HISTORY_KEY, JSON.stringify(next));
+      return next;
     });
   }
 
@@ -276,6 +328,8 @@ export default function CertificadosPage(): ReactNode {
           </p>
         </div>
 
+        <CertificateHistory items={history} onReprint={reimprimir} onDelete={borrarHistorial} />
+
         {nombres.length > 0 && (
           <h2 className="mb-2 mt-8 text-sm font-semibold text-content-muted">Vista previa</h2>
         )}
@@ -303,6 +357,75 @@ export default function CertificadosPage(): ReactNode {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+function CertificateHistory({
+  items,
+  onReprint,
+  onDelete,
+}: {
+  items: CertificateHistoryItem[];
+  onReprint: (item: CertificateHistoryItem) => void;
+  onDelete: (id: string) => void;
+}): ReactNode {
+  return (
+    <div className="mt-4 rounded-xl border border-border bg-surface-raised p-5 shadow-elevation-1">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-content">Historial de certificados</p>
+          <p className="text-xs text-content-muted">
+            Lotes generados en este equipo para reabrirlos como PDF cuando lo necesites.
+          </p>
+        </div>
+        <span className="rounded-full bg-brand-tint px-3 py-1 text-xs font-semibold text-brand-deep">
+          {items.length} lote{items.length === 1 ? '' : 's'}
+        </span>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border-strong p-4 text-sm text-content-muted">
+          Todavia no hay certificados emitidos desde esta pantalla.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-3 px-3 py-3"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-content">{item.taller}</p>
+                <p className="text-xs text-content-muted">
+                  {item.nombres.length} participante{item.nombres.length === 1 ? '' : 's'} ·{' '}
+                  {new Date(item.createdAt).toLocaleString('es-PE', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" onClick={() => onReprint(item)}>
+                  <Printer className="h-4 w-4" />
+                  Reabrir PDF
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(item.id)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-content-muted transition hover:bg-danger/10 hover:text-danger"
+                  aria-label="Eliminar lote del historial"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

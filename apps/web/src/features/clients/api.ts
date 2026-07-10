@@ -25,6 +25,7 @@ function buildQuery(filters: ClientFilters): string {
   const params = new URLSearchParams();
   if (filters.type) params.set('type', filters.type);
   if (filters.temperature) params.set('temperature', filters.temperature);
+  if (filters.tag) params.set('tag', filters.tag);
   if (filters.q) params.set('q', filters.q);
   if (filters.page) params.set('page', String(filters.page));
   const qs = params.toString();

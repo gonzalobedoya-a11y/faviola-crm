@@ -109,8 +109,16 @@ function ClientRow({ client }: { client: Client }): ReactNode {
           {initials}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-content">
+          <p className="flex items-center gap-1.5 truncate text-sm font-medium text-content">
             {client.firstName} {client.lastName}
+            {(client.tags ?? []).slice(0, 2).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-semibold text-brand-deep"
+              >
+                {tag}
+              </span>
+            ))}
           </p>
           <p className="truncate text-xs text-content-muted">
             {client.phone ?? client.email ?? 'Sin contacto'}

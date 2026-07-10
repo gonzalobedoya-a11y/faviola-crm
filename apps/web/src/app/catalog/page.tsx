@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import type { Operation, Property } from '@/features/properties/types';
 import { formatMoney } from '@/lib/format';
 
+const FAVIOLA_WHATSAPP = '51986445884';
+
 interface PublicResponse {
   data?: {
     items: Property[];
@@ -35,7 +37,7 @@ function whatsappCatalogUrl(): string {
     '',
     'Me gustaría recibir asesoría para encontrar una propiedad.',
   ].join('\n');
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${FAVIOLA_WHATSAPP}?text=${encodeURIComponent(text)}`;
 }
 
 export default function PublicCatalogPage(): ReactNode {

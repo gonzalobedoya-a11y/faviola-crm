@@ -22,12 +22,13 @@ export class ClientsService {
   ) {}
 
   async list(tenantId: string, query: ListClientsDto) {
-    const { type, temperature, q, page, pageSize } = query;
+    const { type, temperature, tag, q, page, pageSize } = query;
     const where: Prisma.ClientWhereInput = { tenantId, deletedAt: null };
 
     if (type === 'BUYER') where.type = { in: ['BUYER', 'BOTH'] };
     if (type === 'SELLER') where.type = { in: ['SELLER', 'BOTH'] };
     if (temperature) where.temperature = temperature;
+    if (tag) where.tags = { has: tag };
     if (q) {
       where.OR = [
         { firstName: { contains: q, mode: 'insensitive' } },
@@ -134,7 +135,14 @@ export class ClientsService {
   async birthdays(tenantId: string, days = 30) {
     const clients = await this.prisma.client.findMany({
       where: { tenantId, deletedAt: null, birthday: { not: null } },
-      select: { id: true, firstName: true, lastName: true, phone: true, birthday: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        birthday: true,
+        tags: true,
+      },
     });
 
     const upcoming = clients

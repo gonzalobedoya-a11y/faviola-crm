@@ -98,6 +98,10 @@ export default function ClientDetailPage(): ReactNode {
               />
             </span>
           </div>
+          <ClientTags
+            tags={client.tags ?? []}
+            onChange={(tags) => void updateClient.mutateAsync({ tags })}
+          />
         </div>
       </div>
 
@@ -319,6 +323,72 @@ function RequirementCard({ requirement }: { requirement: ClientRequirement }): R
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+const TAG_SUGGESTIONS = ['VIP ⭐', 'Regalo 🎁', 'Referidor', 'Inversionista', 'Frecuente'];
+
+function ClientTags({
+  tags,
+  onChange,
+}: {
+  tags: string[];
+  onChange: (tags: string[]) => void;
+}): ReactNode {
+  const [newTag, setNewTag] = useState('');
+
+  const add = (value: string): void => {
+    const clean = value.trim();
+    if (!clean || tags.includes(clean)) return;
+    onChange([...tags, clean]);
+    setNewTag('');
+  };
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      {tags.map((tag) => (
+        <button
+          key={tag}
+          type="button"
+          onClick={() => onChange(tags.filter((t) => t !== tag))}
+          title="Quitar etiqueta"
+          className="group inline-flex items-center gap-1 rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand-deep"
+        >
+          {tag}
+          <span className="text-brand-deep/50 group-hover:text-danger">×</span>
+        </button>
+      ))}
+      {tags.length === 0 &&
+        TAG_SUGGESTIONS.slice(0, 3).map((suggestion) => (
+          <button
+            key={suggestion}
+            type="button"
+            onClick={() => add(suggestion)}
+            className="inline-flex items-center rounded-full border border-dashed border-border-strong px-2.5 py-1 text-xs text-content-muted transition hover:border-brand hover:text-brand-deep"
+          >
+            + {suggestion}
+          </button>
+        ))}
+      <input
+        list="client-tag-suggestions"
+        value={newTag}
+        onChange={(e) => setNewTag(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            add(newTag);
+          }
+        }}
+        onBlur={() => add(newTag)}
+        placeholder="+ etiqueta"
+        className="h-7 w-28 rounded-full border border-transparent bg-transparent px-2.5 text-xs text-content placeholder:text-content-muted transition hover:border-border focus-visible:border-brand focus-visible:outline-none"
+      />
+      <datalist id="client-tag-suggestions">
+        {TAG_SUGGESTIONS.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
     </div>
   );
 }

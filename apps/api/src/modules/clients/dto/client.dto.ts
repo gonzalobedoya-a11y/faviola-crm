@@ -23,6 +23,7 @@ export const createClientSchema = z.object({
   temperature: z.enum(['HOT', 'WARM', 'COLD']).default('WARM'),
   notes: z.string().optional(),
   birthday: z.coerce.date().nullable().optional(),
+  tags: z.array(z.string().min(1).max(40)).max(12).optional(),
   requirement: requirementSchema.optional(),
 });
 
@@ -55,6 +56,7 @@ export const updateClientSchema = createClientSchema.partial().omit({ requiremen
 export const listClientsSchema = z.object({
   type: z.enum(['BUYER', 'SELLER']).optional(),
   temperature: z.enum(['HOT', 'WARM', 'COLD']).optional(),
+  tag: z.string().optional(),
   q: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(20),

@@ -187,12 +187,22 @@ function BirthdayRow({ item, template }: { item: BirthdayItem; template: string 
           🎂
         </span>
         <div className="min-w-0 flex-1">
-          <Link
-            href={`/clients/${item.id}`}
-            className="text-sm font-semibold text-content hover:text-brand-deep"
-          >
-            {name}
-          </Link>
+          <p className="flex flex-wrap items-center gap-1.5">
+            <Link
+              href={`/clients/${item.id}`}
+              className="text-sm font-semibold text-content hover:text-brand-deep"
+            >
+              {name}
+            </Link>
+            {(item.tags ?? []).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-semibold text-brand-deep"
+              >
+                {tag}
+              </span>
+            ))}
+          </p>
           <p className="text-xs capitalize text-content-muted">
             {dateLabel(item)}
             {item.turns ? ` · cumple ${item.turns} años` : ''}

@@ -4,6 +4,7 @@ import type { LegalDocType } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 import type { AddDocumentDto, UpdateLegalDto } from './dto/legal.dto';
+import { LegalDocumentStorageService } from './legal-document-storage.service';
 
 /** Tipos obligatorios para dar el expediente por completo (OTROS es opcional). */
 const REQUIRED_TYPES: LegalDocType[] = [
@@ -18,7 +19,10 @@ type DossierStatus = 'PENDIENTE' | 'EN_PROCESO' | 'COMPLETADO' | 'CANCELADO';
 
 @Injectable()
 export class LegalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: LegalDocumentStorageService,
+  ) {}
 
   /** Expedientes de todas las propiedades activas, con estado calculado. */
   async overview(tenantId: string) {
@@ -80,8 +84,14 @@ export class LegalService {
 
   async addDocument(tenantId: string, propertyId: string, dto: AddDocumentDto) {
     await this.getPropertyOrThrow(tenantId, propertyId);
+    const stored = await this.storage.store({
+      tenantId,
+      propertyId,
+      name: dto.name,
+      source: dto.url,
+    });
     return this.prisma.propertyDocument.create({
-      data: { tenantId, propertyId, type: dto.type, name: dto.name, url: dto.url },
+      data: { tenantId, propertyId, type: dto.type, name: dto.name, url: stored.url },
       select: { id: true, type: true, name: true, createdAt: true },
     });
   }

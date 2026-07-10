@@ -88,6 +88,25 @@ export default function DocumentsPage(): ReactNode {
     return byTab.filter((i) => i.status === status).length;
   };
 
+  const summary = useMemo(() => {
+    const all = data?.items ?? [];
+    const visibleBase =
+      tab === 'EXCLUSIVAS' ? all.filter((i) => i.legal.contract === 'EXCLUSIVO') : all;
+    const expired = visibleBase.filter(
+      (i) => corretajeAlert(i.legal.corretajeExpiry)?.label === 'Vencido',
+    );
+    const dueSoon = visibleBase.filter((i) =>
+      corretajeAlert(i.legal.corretajeExpiry)?.label.startsWith('Vence'),
+    );
+    return {
+      completed: visibleBase.filter((i) => i.status === 'COMPLETADO').length,
+      pending: visibleBase.filter((i) => i.status === 'PENDIENTE' || i.status === 'EN_PROCESO')
+        .length,
+      expired: expired.length,
+      dueSoon: dueSoon.length,
+    };
+  }, [data, tab]);
+
   return (
     <div className="w-full max-w-7xl space-y-5">
       {/* Cabecera + buscador */}
@@ -121,6 +140,38 @@ export default function DocumentsPage(): ReactNode {
         <TabButton active={tab === 'TODAS'} onClick={() => setTab('TODAS')}>
           Todas las propiedades
         </TabButton>
+      </div>
+
+      {/* Resumen operativo */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <DocumentSummaryCard
+          icon={<ShieldCheck className="h-5 w-5" />}
+          label="Propiedades completas"
+          value={summary.completed}
+          hint="Expedientes con documentos obligatorios"
+          tone="success"
+        />
+        <DocumentSummaryCard
+          icon={<FileText className="h-5 w-5" />}
+          label="Pendientes"
+          value={summary.pending}
+          hint="Falta al menos un documento clave"
+          tone="warning"
+        />
+        <DocumentSummaryCard
+          icon={<AlertTriangle className="h-5 w-5" />}
+          label="Corretaje vencido"
+          value={summary.expired}
+          hint="Requiere renovacion o revision"
+          tone="danger"
+        />
+        <DocumentSummaryCard
+          icon={<Calendar className="h-5 w-5" />}
+          label="Por vencer"
+          value={summary.dueSoon}
+          hint="Contratos dentro de los proximos 30 dias"
+          tone="brand"
+        />
       </div>
 
       {/* Filtros de estado */}
@@ -258,6 +309,7 @@ function DossierRow({
   }
   const alert = corretajeAlert(item.legal.corretajeExpiry);
   const estudio = byType.has('ESTUDIO_TITULO');
+  const missing = DOC_TYPES.filter((d) => d.key !== 'OTROS' && !byType.has(d.key));
 
   return (
     <>
@@ -286,6 +338,7 @@ function DossierRow({
             <span className="rounded-full bg-surface-sunken px-2.5 py-0.5 text-[11px] font-medium text-content-secondary">
               {item.property.propertyType ?? 'Inmueble'}
             </span>
+            <DossierStatusBadge status={item.status} alert={alert?.label} />
             <span className="text-[11px] font-semibold uppercase text-content-muted">
               COD: <span className="font-mono text-brand-deep">{item.property.code}</span>
             </span>
@@ -324,6 +377,14 @@ function DossierRow({
                 {item.legal.contract === 'EXCLUSIVO' ? 'Exclusivo' : 'No exclusivo'}
               </span>
             </p>
+            {missing.length > 0 && (
+              <p className="line-clamp-1">
+                Falta:{' '}
+                <span className="font-medium text-warning">
+                  {missing.map((d) => d.label).join(', ')}
+                </span>
+              </p>
+            )}
           </div>
         </td>
 
@@ -360,6 +421,81 @@ function DossierRow({
         </tr>
       )}
     </>
+  );
+}
+
+function DocumentSummaryCard({
+  icon,
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: number;
+  hint: string;
+  tone: 'success' | 'warning' | 'danger' | 'brand';
+}): ReactNode {
+  const toneClass = {
+    success: 'bg-success/10 text-success',
+    warning: 'bg-warning/15 text-warning',
+    danger: 'bg-danger/10 text-danger',
+    brand: 'bg-brand-tint text-brand-deep',
+  }[tone];
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-raised p-4 shadow-elevation-1">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-content-muted">
+            {label}
+          </p>
+          <p className="mt-2 font-display text-3xl text-content">{value}</p>
+        </div>
+        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${toneClass}`}>
+          {icon}
+        </span>
+      </div>
+      <p className="mt-2 text-xs text-content-muted">{hint}</p>
+    </div>
+  );
+}
+
+function DossierStatusBadge({
+  status,
+  alert,
+}: {
+  status: DossierStatus;
+  alert?: string;
+}): ReactNode {
+  if (alert === 'Vencido') {
+    return (
+      <span className="rounded-full bg-danger/10 px-2.5 py-0.5 text-[11px] font-semibold text-danger">
+        Vencido
+      </span>
+    );
+  }
+  if (alert?.startsWith('Vence')) {
+    return (
+      <span className="rounded-full bg-warning/15 px-2.5 py-0.5 text-[11px] font-semibold text-warning">
+        {alert}
+      </span>
+    );
+  }
+
+  const meta: Record<DossierStatus, { label: string; className: string }> = {
+    COMPLETADO: { label: 'Completo', className: 'bg-success/10 text-success' },
+    EN_PROCESO: { label: 'En proceso', className: 'bg-warning/15 text-warning' },
+    PENDIENTE: { label: 'Pendiente', className: 'bg-surface-sunken text-content-muted' },
+    CANCELADO: { label: 'Cancelado', className: 'bg-danger/10 text-danger' },
+  };
+  return (
+    <span
+      className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${meta[status].className}`}
+    >
+      {meta[status].label}
+    </span>
   );
 }
 

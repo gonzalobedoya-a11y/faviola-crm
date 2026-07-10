@@ -27,6 +27,7 @@ export interface Client {
   score: number;
   notes?: string | null;
   birthday?: string | null;
+  tags: string[];
   lastContactAt?: string | null;
   createdAt: string;
   requirement?: ClientRequirement | null;
@@ -41,6 +42,7 @@ export interface BirthdayItem {
   nextDate: string;
   daysUntil: number;
   turns?: number | null;
+  tags: string[];
 }
 
 export interface BirthdaySettings {
@@ -69,6 +71,7 @@ export interface Paginated<T> {
 export interface ClientFilters {
   type?: 'BUYER' | 'SELLER';
   temperature?: Temperature;
+  tag?: string;
   q?: string;
   page?: number;
 }
@@ -83,5 +86,6 @@ export interface CreateClientInput {
   temperature: Temperature;
   notes?: string;
   birthday?: string | null;
+  tags?: string[];
   requirement?: ClientRequirement;
 }

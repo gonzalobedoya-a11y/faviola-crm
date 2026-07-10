@@ -12,6 +12,8 @@ import { operationLabel } from '@/features/properties/labels';
 import type { PropertyDetail } from '@/features/properties/types';
 import { formatMoney } from '@/lib/format';
 
+const FAVIOLA_WHATSAPP = '51986445884';
+
 interface PublicProperty extends PropertyDetail {
   agent?: { firstName: string; lastName: string; phone?: string | null };
 }
@@ -27,7 +29,7 @@ function cleanPhone(phone?: string | null): string {
 }
 
 function whatsappUrl(property: PublicProperty): string {
-  const number = cleanPhone(property.agent?.phone);
+  const number = cleanPhone(property.agent?.phone) || FAVIOLA_WHATSAPP;
   const text = [
     'Hola Faviola, me interesa esta propiedad:',
     '',
