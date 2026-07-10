@@ -11,6 +11,8 @@ import { ClientsService } from './clients.service';
 import {
   type AddActivityDto,
   addActivitySchema,
+  type BirthdaySettingsDto,
+  birthdaySettingsSchema,
   type CreateClientDto,
   createClientSchema,
   type ListClientsDto,
@@ -51,6 +53,32 @@ export class ClientsController {
   @Post('public-leads')
   createPublicLead(@Body(new ZodValidationPipe(publicLeadSchema)) dto: PublicLeadDto) {
     return this.clients.createPublicLead(dto);
+  }
+
+  // ⚠️ Rutas fijas ANTES de ':id' para que Nest no las tome como un id.
+  @Get('birthdays')
+  @RequirePermissions('clients.read')
+  birthdays(@CurrentUser() user: JwtPayload, @Query('days') days?: string) {
+    const parsed = Number(days);
+    return this.clients.birthdays(
+      user.tenantId,
+      Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 365) : 30,
+    );
+  }
+
+  @Get('birthday-settings')
+  @RequirePermissions('clients.read')
+  getBirthdaySettings(@CurrentUser() user: JwtPayload) {
+    return this.clients.getBirthdaySettings(user.tenantId);
+  }
+
+  @Patch('birthday-settings')
+  @RequirePermissions('clients.update')
+  updateBirthdaySettings(
+    @CurrentUser() user: JwtPayload,
+    @Body(new ZodValidationPipe(birthdaySettingsSchema)) dto: BirthdaySettingsDto,
+  ) {
+    return this.clients.updateBirthdaySettings(user.tenantId, dto);
   }
 
   @Get(':id')

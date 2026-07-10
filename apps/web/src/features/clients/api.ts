@@ -4,6 +4,8 @@ import { httpClient } from '@/lib/api/http';
 
 import type {
   Activity,
+  BirthdayItem,
+  BirthdaySettings,
   Client,
   ClientDetail,
   ClientFilters,
@@ -49,6 +51,38 @@ export function useCreateClient() {
   return useMutation({
     mutationFn: (input: CreateClientInput) => httpClient.post<Client>('/clients', input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: clientKeys.all }),
+  });
+}
+
+export function useUpdateClient(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Partial<CreateClientInput>) =>
+      httpClient.patch<Client>(`/clients/${id}`, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: clientKeys.all }),
+  });
+}
+
+export function useBirthdays(days = 30) {
+  return useQuery({
+    queryKey: ['clients', 'birthdays', days] as const,
+    queryFn: () => httpClient.get<{ items: BirthdayItem[] }>(`/clients/birthdays?days=${days}`),
+  });
+}
+
+export function useBirthdaySettings() {
+  return useQuery({
+    queryKey: ['clients', 'birthday-settings'] as const,
+    queryFn: () => httpClient.get<BirthdaySettings>('/clients/birthday-settings'),
+  });
+}
+
+export function useUpdateBirthdaySettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Partial<BirthdaySettings>) =>
+      httpClient.patch<BirthdaySettings>('/clients/birthday-settings', patch),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients', 'birthday-settings'] }),
   });
 }
 

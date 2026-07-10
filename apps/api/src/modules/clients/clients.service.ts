@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { nextBirthday } from '../../common/utils/birthday';
 import { PrismaService } from '../../database/prisma.service';
 import { MatchingService } from '../matching/matching.service';
 
@@ -127,6 +128,55 @@ export class ClientsService {
     });
 
     return { id: client.id, message: 'Lead recibido. Faviola se pondrá en contacto.' };
+  }
+
+  /** Clientes que cumplen años en los próximos `days` días (incluye hoy). */
+  async birthdays(tenantId: string, days = 30) {
+    const clients = await this.prisma.client.findMany({
+      where: { tenantId, deletedAt: null, birthday: { not: null } },
+      select: { id: true, firstName: true, lastName: true, phone: true, birthday: true },
+    });
+
+    const upcoming = clients
+      .map((client) => {
+        const next = nextBirthday(client.birthday as Date);
+        return { ...client, nextDate: next.date, daysUntil: next.daysUntil, turns: next.turns };
+      })
+      .filter((c) => c.daysUntil <= days)
+      .sort((a, b) => a.daysUntil - b.daysUntil);
+
+    return { items: upcoming };
+  }
+
+  /** Plantilla de saludo de cumpleaños (tenant.settings). */
+  async getBirthdaySettings(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true },
+    });
+    const s = (tenant?.settings ?? {}) as Record<string, unknown>;
+    return {
+      template:
+        typeof s.birthdayTemplate === 'string' && s.birthdayTemplate.trim()
+          ? s.birthdayTemplate
+          : '¡Feliz cumpleaños, {nombre}! 🎂🎉 Que tengas un día maravilloso rodeado de los tuyos. Un abrazo grande, Faviola Velarde — Asesoría Patrimonial.',
+      autoSend: s.birthdayAutoSend === true,
+    };
+  }
+
+  async updateBirthdaySettings(tenantId: string, dto: { template?: string; autoSend?: boolean }) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true },
+    });
+    const settings = { ...((tenant?.settings ?? {}) as Record<string, unknown>) };
+    if (dto.template !== undefined) settings.birthdayTemplate = dto.template;
+    if (dto.autoSend !== undefined) settings.birthdayAutoSend = dto.autoSend;
+    await this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: { settings: settings as Prisma.InputJsonObject },
+    });
+    return this.getBirthdaySettings(tenantId);
   }
 
   async get(tenantId: string, id: string) {

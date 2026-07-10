@@ -26,9 +26,26 @@ export interface Client {
   temperature: Temperature;
   score: number;
   notes?: string | null;
+  birthday?: string | null;
   lastContactAt?: string | null;
   createdAt: string;
   requirement?: ClientRequirement | null;
+}
+
+export interface BirthdayItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  birthday: string;
+  nextDate: string;
+  daysUntil: number;
+  turns?: number | null;
+}
+
+export interface BirthdaySettings {
+  template: string;
+  autoSend: boolean;
 }
 
 export interface Activity {
@@ -65,5 +82,6 @@ export interface CreateClientInput {
   source?: string;
   temperature: Temperature;
   notes?: string;
+  birthday?: string | null;
   requirement?: ClientRequirement;
 }

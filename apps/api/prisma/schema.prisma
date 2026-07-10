@@ -199,6 +199,7 @@ model Client {
   temperature   ClientTemperature @default(WARM)
   score         Int               @default(0)
   notes         String?
+  birthday      DateTime?
   ownerId       String
   lastContactAt DateTime?
   createdAt     DateTime          @default(now())

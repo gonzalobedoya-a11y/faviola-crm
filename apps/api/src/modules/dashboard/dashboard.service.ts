@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import { nextBirthday } from '../../common/utils/birthday';
 import { PrismaService } from '../../database/prisma.service';
 
 const ACTIVE_STAGES = ['NEW', 'CONTACTED', 'VISIT', 'OFFER', 'NEGOTIATION', 'CLOSING'] as const;
@@ -37,6 +38,7 @@ export class DashboardService {
       clientsNew,
       propertiesNew,
       matchesNew,
+      birthdayClients,
     ] = await Promise.all([
       this.prisma.client.count({ where: { tenantId, deletedAt: null } }),
       this.prisma.client.count({
@@ -122,9 +124,30 @@ export class DashboardService {
         where: { tenantId, deletedAt: null, createdAt: { gte: sevenDaysAgo } },
       }),
       this.prisma.match.count({ where: { tenantId, createdAt: { gte: sevenDaysAgo } } }),
+      this.prisma.client.findMany({
+        where: { tenantId, deletedAt: null, birthday: { not: null } },
+        select: { id: true, firstName: true, lastName: true, phone: true, birthday: true },
+      }),
     ]);
 
     const nextActions = this.buildNextActions(topMatches, followUps, dealsClosing);
+
+    // Cumpleaños dentro de los próximos 7 días (incluye hoy).
+    const birthdays = birthdayClients
+      .map((client) => {
+        const next = nextBirthday(client.birthday as Date);
+        return {
+          id: client.id,
+          name: `${client.firstName} ${client.lastName}`,
+          phone: client.phone,
+          date: next.date,
+          daysUntil: next.daysUntil,
+          turns: next.turns,
+        };
+      })
+      .filter((b) => b.daysUntil <= 7)
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+      .slice(0, 6);
 
     return {
       counts: {
@@ -179,6 +202,7 @@ export class DashboardService {
         createdAt: entry.createdAt,
       })),
       nextActions,
+      birthdays,
     };
   }
 

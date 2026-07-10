@@ -47,6 +47,14 @@ export interface DashboardData {
     createdAt: string;
   }[];
   nextActions: { title: string; detail: string }[];
+  birthdays: {
+    id: string;
+    name: string;
+    phone: string | null;
+    date: string;
+    daysUntil: number;
+    turns: number | null;
+  }[];
 }
 
 export function useDashboard() {

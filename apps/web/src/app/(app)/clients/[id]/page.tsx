@@ -1,13 +1,18 @@
 'use client';
 
-import { ArrowLeft, Mail, Phone, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, Cake, Mail, Phone, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useAddActivity, useClient, useUpsertRequirement } from '@/features/clients/api';
+import {
+  useAddActivity,
+  useClient,
+  useUpdateClient,
+  useUpsertRequirement,
+} from '@/features/clients/api';
 import {
   formatMoney,
   temperatureClass,
@@ -21,6 +26,7 @@ export default function ClientDetailPage(): ReactNode {
   const id = params.id;
   const { data: client, isLoading, isError } = useClient(id);
   const addActivity = useAddActivity(id);
+  const updateClient = useUpdateClient(id);
   const [note, setNote] = useState('');
   const [editingRequirement, setEditingRequirement] = useState(false);
 
@@ -78,6 +84,19 @@ export default function ClientDetailPage(): ReactNode {
               </span>
             )}
             {client.source && <span className="text-content-muted">Origen: {client.source}</span>}
+            <span className="inline-flex items-center gap-1.5">
+              <Cake className="h-4 w-4 text-brand" />
+              <input
+                type="date"
+                defaultValue={client.birthday ? client.birthday.slice(0, 10) : ''}
+                onChange={(e) =>
+                  void updateClient.mutateAsync({ birthday: e.target.value || null })
+                }
+                title="Cumpleaños del cliente"
+                aria-label="Cumpleaños del cliente"
+                className="rounded-md border border-transparent bg-transparent text-sm text-content-secondary transition hover:border-border focus-visible:border-brand focus-visible:outline-none"
+              />
+            </span>
           </div>
         </div>
       </div>

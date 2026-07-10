@@ -20,6 +20,7 @@ const schema = z.object({
   phone: z.string().optional(),
   email: z.union([z.string().email('Correo inválido'), z.literal('')]).optional(),
   source: z.string().optional(),
+  birthday: z.string().optional(),
   temperature: z.enum(['HOT', 'WARM', 'COLD']),
   notes: z.string().optional(),
   operation: z.enum(['SALE', 'RENT']),
@@ -71,6 +72,7 @@ export default function NewClientPage(): ReactNode {
         value?.trim() ? Number(value) : undefined;
       const client = await createClient.mutateAsync({
         ...clientValues,
+        birthday: values.birthday?.trim() || undefined,
         requirement:
           values.type === 'SELLER'
             ? undefined
@@ -176,6 +178,12 @@ export default function NewClientPage(): ReactNode {
               Origen
             </label>
             <Input id="source" placeholder="Referido, Facebook, portal…" {...register('source')} />
+          </div>
+          <div>
+            <label htmlFor="birthday" className={labelClass}>
+              Cumpleaños 🎂
+            </label>
+            <input id="birthday" type="date" className={fieldClass} {...register('birthday')} />
           </div>
           {clientType !== 'SELLER' && (
             <fieldset className="grid gap-5 rounded-lg border border-border bg-surface-sunken p-4 sm:col-span-2 sm:grid-cols-2">

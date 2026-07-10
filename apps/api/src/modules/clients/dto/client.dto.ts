@@ -22,7 +22,13 @@ export const createClientSchema = z.object({
   source: z.string().optional(),
   temperature: z.enum(['HOT', 'WARM', 'COLD']).default('WARM'),
   notes: z.string().optional(),
+  birthday: z.coerce.date().nullable().optional(),
   requirement: requirementSchema.optional(),
+});
+
+export const birthdaySettingsSchema = z.object({
+  template: z.string().max(1000).optional(),
+  autoSend: z.boolean().optional(),
 });
 
 const optionalEmailSchema = z
@@ -59,6 +65,7 @@ export const addActivitySchema = z.object({
   message: z.string().min(1, 'El mensaje es obligatorio'),
 });
 
+export type BirthdaySettingsDto = z.infer<typeof birthdaySettingsSchema>;
 export type RequirementDto = z.infer<typeof requirementSchema>;
 export type CreateClientDto = z.infer<typeof createClientSchema>;
 export type PublicLeadDto = z.infer<typeof publicLeadSchema>;

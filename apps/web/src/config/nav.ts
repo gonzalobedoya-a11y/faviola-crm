@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Building2,
+  Cake,
   CalendarDays,
   FileText,
   GraduationCap,
@@ -32,6 +33,7 @@ export const navItems: NavItem[] = [
   { label: 'Academia FV', href: '/academy', icon: GraduationCap },
   { label: 'Pipeline', href: '/pipeline', icon: KanbanSquare },
   { label: 'Agenda', href: '/agenda', icon: CalendarDays },
+  { label: 'Cumpleaños', href: '/birthdays', icon: Cake },
   { label: 'Visitas', href: '/visits', icon: MapPin },
   { label: 'Documentos', href: '/documents', icon: FileText },
   { label: 'Reportes', href: '/reports', icon: BarChart3 },

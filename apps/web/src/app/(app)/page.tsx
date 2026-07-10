@@ -4,7 +4,9 @@ import {
   ArrowRight,
   AlertTriangle,
   Building2,
+  Cake,
   CalendarDays,
+  MessageCircle,
   Plus,
   Sparkles,
   Users,
@@ -16,7 +18,8 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { useDashboard } from '@/features/dashboard/api';
+import { useBirthdaySettings } from '@/features/clients/api';
+import { useDashboard, type DashboardData } from '@/features/dashboard/api';
 import { useAuth } from '@/lib/auth/auth-context';
 import { formatMoney } from '@/lib/format';
 
@@ -234,6 +237,9 @@ export default function DashboardPage(): ReactNode {
           </div>
         </section>
       )}
+
+      {/* Cumpleaños esta semana */}
+      {data && data.birthdays.length > 0 && <BirthdaysCard birthdays={data.birthdays} />}
 
       {/* KPIs */}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -466,5 +472,79 @@ function SkeletonLines(): ReactNode {
         <div key={index} className="h-12 rounded-lg bg-surface-sunken" />
       ))}
     </div>
+  );
+}
+
+function birthdayWhatsAppUrl(phone: string | null, name: string, template: string): string {
+  const digits = phone?.replace(/\D/g, '') ?? '';
+  const full = digits.startsWith('51') ? digits : `51${digits}`;
+  const firstName = name.split(' ')[0] ?? name;
+  const text = template.replaceAll('{nombre}', firstName);
+  return `https://wa.me/${full}?text=${encodeURIComponent(text)}`;
+}
+
+function birthdayLabel(daysUntil: number, date: string): string {
+  if (daysUntil === 0) return '¡Hoy! 🎉';
+  if (daysUntil === 1) return 'Mañana';
+  return new Date(date).toLocaleDateString('es-PE', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'short',
+  });
+}
+
+function BirthdaysCard({ birthdays }: { birthdays: DashboardData['birthdays'] }): ReactNode {
+  const { data: settings } = useBirthdaySettings();
+  const template =
+    settings?.template ??
+    '¡Feliz cumpleaños, {nombre}! 🎂🎉 Que tengas un día maravilloso. Un abrazo, Faviola Velarde.';
+
+  return (
+    <section className="rounded-xl border border-[#d8a94a]/40 bg-[#fdf6e7] p-5 dark:bg-[#2a2416]">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="inline-flex items-center gap-2 text-sm font-semibold text-[#9a7524] dark:text-[#d8c08c]">
+          <Cake className="h-4 w-4" />
+          Cumpleaños esta semana
+        </p>
+        <Link href="/birthdays" className="text-xs font-medium text-brand-deep hover:underline">
+          Ver todos →
+        </Link>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {birthdays.map((b) => (
+          <div
+            key={b.id}
+            className="flex items-center gap-3 rounded-lg bg-surface-raised p-3.5 shadow-elevation-1"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#d8a94a]/15 text-lg">
+              🎂
+            </span>
+            <div className="min-w-0 flex-1">
+              <Link
+                href={`/clients/${b.id}`}
+                className="block truncate text-sm font-semibold text-content hover:text-brand-deep"
+              >
+                {b.name}
+              </Link>
+              <p className="text-xs capitalize text-content-muted">
+                {birthdayLabel(b.daysUntil, b.date)}
+                {b.turns ? ` · cumple ${b.turns}` : ''}
+              </p>
+            </div>
+            {b.phone && (
+              <a
+                href={birthdayWhatsAppUrl(b.phone, b.name, template)}
+                target="_blank"
+                rel="noreferrer"
+                title="Enviar saludo por WhatsApp"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#128C4B]/10 text-[#128C4B] transition hover:bg-[#128C4B] hover:text-white"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
