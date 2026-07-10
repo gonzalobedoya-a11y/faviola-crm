@@ -11,6 +11,17 @@ import type {
   UpdateConversationDto,
 } from './dto/inbox.dto';
 
+type AutoMode = 'OFF' | 'AFTER_HOURS' | 'ALWAYS';
+
+interface AiSettings {
+  instructions: string;
+  autoMode: AutoMode;
+  hoursStart: number;
+  hoursEnd: number;
+  configured: boolean;
+  model: string;
+}
+
 @Injectable()
 export class InboxService {
   constructor(
@@ -228,32 +239,164 @@ export class InboxService {
     };
   }
 
-  /** Instrucciones del asistente (conocimiento del negocio) — guardadas en tenant.settings. */
-  async getAiSettings(tenantId: string) {
+  /** Configuración del asistente (conocimiento + automatización) — en tenant.settings. */
+  async getAiSettings(tenantId: string): Promise<AiSettings> {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { settings: true },
     });
-    const settings = (tenant?.settings ?? {}) as Record<string, unknown>;
+    const s = (tenant?.settings ?? {}) as Record<string, unknown>;
     return {
-      instructions: typeof settings.aiInstructions === 'string' ? settings.aiInstructions : '',
+      instructions: typeof s.aiInstructions === 'string' ? s.aiInstructions : '',
+      autoMode: (['OFF', 'AFTER_HOURS', 'ALWAYS'] as const).includes(s.autoMode as AutoMode)
+        ? (s.autoMode as AutoMode)
+        : 'OFF',
+      hoursStart: typeof s.hoursStart === 'number' ? s.hoursStart : 9,
+      hoursEnd: typeof s.hoursEnd === 'number' ? s.hoursEnd : 19,
       configured: this.ai.isConfigured,
       model: this.ai.model,
     };
   }
 
-  async updateAiSettings(tenantId: string, instructions: string) {
+  async updateAiSettings(
+    tenantId: string,
+    patch: Partial<Pick<AiSettings, 'instructions' | 'autoMode' | 'hoursStart' | 'hoursEnd'>>,
+  ) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { settings: true },
     });
     const settings = { ...((tenant?.settings ?? {}) as Record<string, unknown>) };
-    settings.aiInstructions = instructions;
+    if (patch.instructions !== undefined) settings.aiInstructions = patch.instructions;
+    if (patch.autoMode !== undefined) settings.autoMode = patch.autoMode;
+    if (patch.hoursStart !== undefined) settings.hoursStart = patch.hoursStart;
+    if (patch.hoursEnd !== undefined) settings.hoursEnd = patch.hoursEnd;
     await this.prisma.tenant.update({
       where: { id: tenantId },
       data: { settings: settings as Prisma.InputJsonObject },
     });
-    return { instructions };
+    return this.getAiSettings(tenantId);
+  }
+
+  /** Llega un mensaje del cliente (canal real o simulado): registra + intenta responder solo. */
+  async receiveInbound(tenantId: string, id: string, body: string) {
+    await this.getOrThrow(tenantId, id);
+    await this.prisma.inboxMessage.create({
+      data: { tenantId, conversationId: id, direction: 'INBOUND', author: 'CONTACT', body },
+    });
+    await this.prisma.conversation.update({
+      where: { id },
+      data: {
+        lastPreview: body.slice(0, 140),
+        lastMessageAt: new Date(),
+        unread: { increment: 1 },
+        status: 'OPEN',
+      },
+    });
+    return this.maybeAutoReply(tenantId, id);
+  }
+
+  /** Decide si Claude responde solo, y si aplica lo hace; si no, escala a Faviola. */
+  private async maybeAutoReply(tenantId: string, id: string) {
+    const settings = await this.getAiSettings(tenantId);
+    if (settings.autoMode === 'OFF') return { action: 'NONE' as const };
+    if (settings.autoMode === 'AFTER_HOURS' && this.isBusinessHours(settings)) {
+      return { action: 'NONE' as const };
+    }
+    if (!this.ai.isConfigured) {
+      await this.escalate(id, 'Claude no está conectado (falta API key).');
+      return { action: 'ESCALATE' as const, reason: 'IA no configurada' };
+    }
+
+    const decision = await this.decide(tenantId, id);
+    if (decision.action === 'ANSWER' && decision.reply) {
+      await this.prisma.inboxMessage.create({
+        data: {
+          tenantId,
+          conversationId: id,
+          direction: 'OUTBOUND',
+          author: 'AI',
+          body: decision.reply,
+        },
+      });
+      await this.prisma.conversation.update({
+        where: { id },
+        data: { lastPreview: decision.reply.slice(0, 140), lastMessageAt: new Date(), unread: 0 },
+      });
+      return { action: 'ANSWER' as const, reply: decision.reply };
+    }
+
+    await this.escalate(id, decision.reason);
+    return { action: 'ESCALATE' as const, reason: decision.reason };
+  }
+
+  /** Claude clasifica el último mensaje: responder solo o escalar a Faviola. */
+  private async decide(
+    tenantId: string,
+    conversationId: string,
+  ): Promise<{ action: 'ANSWER' | 'ESCALATE'; reply?: string; reason?: string }> {
+    const context = await this.buildContext(tenantId, conversationId);
+    const { instructions } = await this.getAiSettings(tenantId);
+
+    const system = [
+      'Eres el asistente de "Faviola Velarde — Asesoría Patrimonial" (inmobiliaria de Arequipa).',
+      'Tu tarea: leer el ÚLTIMO mensaje del cliente y decidir si puedes responderlo tú solo o si debes escalarlo a Faviola.',
+      '',
+      'RESPONDE TÚ (action="ANSWER") solo si es una consulta informativa que puedes resolver con certeza usando los datos del CRM y las instrucciones del negocio: precio, dirección, características, disponibilidad, horarios, formas de pago, cómo funciona un crédito, dudas generales, saludo/agradecimiento.',
+      'ESCALA A FAVIOLA (action="ESCALATE") si el mensaje implica: negociar precio o pedir descuento, cerrar/reservar la compra, agendar o confirmar una visita, temas legales o financieros delicados, una queja o reclamo, o cualquier dato que NO tengas en el contexto. Ante la duda, escala.',
+      'Nunca inventes precios, direcciones ni propiedades que no aparezcan en el contexto.',
+      'Responde SIEMPRE en español y SOLO con un JSON válido, sin texto adicional, con esta forma exacta:',
+      '{"action":"ANSWER"|"ESCALATE","reply":"respuesta lista para enviar al cliente (solo si action=ANSWER)","reason":"motivo breve del escalamiento (solo si action=ESCALATE)"}',
+      ...(instructions.trim()
+        ? [
+            '',
+            '# Instrucciones y conocimiento del negocio (definidos por Faviola)',
+            instructions.trim(),
+          ]
+        : []),
+      '',
+      context,
+    ].join('\n');
+
+    const result = await this.ai.complete({
+      system,
+      prompt: 'Analiza el último mensaje del cliente y devuelve solo el JSON de decisión.',
+      maxTokens: 500,
+    });
+
+    const match = result.text.match(/\{[\s\S]*\}/);
+    if (!match)
+      return { action: 'ESCALATE', reason: 'No se pudo interpretar la respuesta de la IA.' };
+    try {
+      const parsed = JSON.parse(match[0]) as { action?: string; reply?: string; reason?: string };
+      if (parsed.action === 'ANSWER' && parsed.reply?.trim()) {
+        return { action: 'ANSWER', reply: parsed.reply.trim() };
+      }
+      return {
+        action: 'ESCALATE',
+        reason: parsed.reason?.trim() || 'Requiere criterio de Faviola.',
+      };
+    } catch {
+      return { action: 'ESCALATE', reason: 'No se pudo interpretar la respuesta de la IA.' };
+    }
+  }
+
+  private async escalate(id: string, reason?: string): Promise<void> {
+    const conv = await this.prisma.conversation.findUnique({
+      where: { id },
+      select: { tags: true },
+    });
+    const tags = Array.from(new Set([...(conv?.tags ?? []), 'Requiere Faviola']));
+    await this.prisma.conversation.update({
+      where: { id },
+      data: { status: 'PENDING', tags, notes: reason ? `IA escaló: ${reason}` : undefined },
+    });
+  }
+
+  /** ¿Estamos en horario de oficina? (hora de Lima, UTC-5). */
+  private isBusinessHours(settings: AiSettings): boolean {
+    const limaHour = (new Date().getUTCHours() - 5 + 24) % 24;
+    return limaHour >= settings.hoursStart && limaHour < settings.hoursEnd;
   }
 
   /** Asistente Claude: responde una consulta o sugiere una respuesta al cliente. */

@@ -86,8 +86,13 @@ export function useAiAssist() {
   });
 }
 
-interface AiSettings {
+export type AutoMode = 'OFF' | 'AFTER_HOURS' | 'ALWAYS';
+
+export interface AiSettings {
   instructions: string;
+  autoMode: AutoMode;
+  hoursStart: number;
+  hoursEnd: number;
   configured: boolean;
   model: string;
 }
@@ -102,8 +107,27 @@ export function useAiSettings() {
 export function useUpdateAiSettings() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (instructions: string) =>
-      httpClient.patch<{ instructions: string }>('/inbox/ai/settings', { instructions }),
+    mutationFn: (
+      patch: Partial<Pick<AiSettings, 'instructions' | 'autoMode' | 'hoursStart' | 'hoursEnd'>>,
+    ) => httpClient.patch<AiSettings>('/inbox/ai/settings', patch),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inbox', 'ai-settings'] }),
+  });
+}
+
+export interface InboundResult {
+  action: 'ANSWER' | 'ESCALATE' | 'NONE';
+  reply?: string;
+  reason?: string;
+}
+
+export function useReceiveInbound(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      httpClient.post<InboundResult>(`/inbox/conversations/${id}/inbound`, { body }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['inbox', 'conversation', id] });
+      void queryClient.invalidateQueries({ queryKey: ['inbox'] });
+    },
   });
 }

@@ -24,7 +24,10 @@ export const leadsDashboardSchema = z.object({
 });
 
 export const aiSettingsSchema = z.object({
-  instructions: z.string().max(6000, 'Máximo 6000 caracteres'),
+  instructions: z.string().max(6000, 'Máximo 6000 caracteres').optional(),
+  autoMode: z.enum(['OFF', 'AFTER_HOURS', 'ALWAYS']).optional(),
+  hoursStart: z.number().int().min(0).max(23).optional(),
+  hoursEnd: z.number().int().min(0).max(23).optional(),
 });
 
 export const aiAssistSchema = z.object({

@@ -5,6 +5,7 @@ import {
   Bot,
   Building2,
   Check,
+  FlaskConical,
   GraduationCap,
   Loader2,
   Search,
@@ -21,10 +22,13 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
+  type AutoMode,
+  type InboundResult,
   useAiAssist,
   useAiSettings,
   useConversation,
   useInbox,
+  useReceiveInbound,
   useSendMessage,
   useUpdateAiSettings,
   useUpdateConversation,
@@ -384,8 +388,78 @@ function Thread({
             )}
           </Button>
         </div>
+        <SimulateInbound conversationId={conversationId} />
       </div>
     </section>
+  );
+}
+
+/** Herramienta de prueba: simula un mensaje entrante del cliente para ver la
+ *  automatización (responde solo / escala) sin WhatsApp aún conectado. */
+function SimulateInbound({ conversationId }: { conversationId: string }): ReactNode {
+  const receive = useReceiveInbound(conversationId);
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<InboundResult | null>(null);
+
+  const send = async (): Promise<void> => {
+    if (!text.trim()) return;
+    const res = await receive.mutateAsync(text.trim());
+    setResult(res);
+    setText('');
+  };
+
+  return (
+    <div className="mt-2 border-t border-dashed border-border pt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-[11px] font-medium text-content-muted hover:text-brand-deep"
+      >
+        <FlaskConical className="h-3 w-3" />
+        Probar automatización (simular mensaje del cliente)
+      </button>
+      {open && (
+        <div className="mt-2">
+          <div className="flex items-end gap-2">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void send();
+              }}
+              placeholder="Escribe como si fueras el cliente…"
+              className="h-9 flex-1 rounded-lg border border-dashed border-border-strong bg-surface px-3 text-sm text-content placeholder:text-content-muted focus-visible:border-brand focus-visible:outline-none"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void send()}
+              disabled={!text.trim() || receive.isPending}
+            >
+              {receive.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar'}
+            </Button>
+          </div>
+          {result && (
+            <p
+              className={`mt-1.5 text-[11px] ${
+                result.action === 'ANSWER'
+                  ? 'text-success'
+                  : result.action === 'ESCALATE'
+                    ? 'text-warning'
+                    : 'text-content-muted'
+              }`}
+            >
+              {result.action === 'ANSWER' && '🤖 Claude respondió solo.'}
+              {result.action === 'ESCALATE' &&
+                `🙋 Escalado a Faviola${result.reason ? `: ${result.reason}` : '.'}`}
+              {result.action === 'NONE' &&
+                'Mensaje recibido. En modo copiloto la IA no responde sola (usa “Sugerir”).'}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -777,6 +851,15 @@ function ContextPanel({
   );
 }
 
+const autoModeInfo: Record<AutoMode, { label: string; hint: string }> = {
+  OFF: { label: 'Copiloto', hint: 'Claude solo sugiere. Faviola revisa y envía.' },
+  AFTER_HOURS: {
+    label: 'Fuera de horario',
+    hint: 'Responde solo fuera del horario de oficina; dentro, queda en copiloto.',
+  },
+  ALWAYS: { label: 'Siempre', hint: 'Responde apenas llega el mensaje (con filtro).' },
+};
+
 function AiTraining(): ReactNode {
   const { data } = useAiSettings();
   const update = useUpdateAiSettings();
@@ -789,8 +872,10 @@ function AiTraining(): ReactNode {
     if (typeof loaded === 'string') setText(loaded);
   }, [loaded]);
 
-  const save = async (): Promise<void> => {
-    await update.mutateAsync(text);
+  const mode = data?.autoMode ?? 'OFF';
+
+  const saveInstructions = async (): Promise<void> => {
+    await update.mutateAsync({ instructions: text });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -804,39 +889,118 @@ function AiTraining(): ReactNode {
       >
         <span className="inline-flex items-center gap-1.5">
           <GraduationCap className="h-3.5 w-3.5" />
-          Entrenar al asistente
+          Automatización y entrenamiento
         </span>
         <span>{open ? '−' : '+'}</span>
       </button>
       {open && (
-        <div className="mt-2">
-          <p className="mb-2 text-[11px] text-content-muted">
-            Escribe conocimiento del negocio que Claude usará siempre: horarios, formas de pago,
-            financiamiento, comisión, tono de respuesta, políticas, etc.
-          </p>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={5}
-            placeholder={
-              'Ej. Atiendo de lunes a sábado de 9am a 7pm. Trabajo con crédito hipotecario de BCP e Interbank. Mi comisión es 3%. Siempre ofrezco agendar una visita.'
-            }
-            className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus-visible:border-brand focus-visible:outline-none"
-          />
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-[11px] text-success">{saved ? '✓ Guardado' : ''}</span>
-            <Button
-              variant="brand"
-              size="sm"
-              onClick={() => void save()}
-              disabled={update.isPending}
-            >
-              Guardar entrenamiento
-            </Button>
+        <div className="mt-3 space-y-4">
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-content-muted">
+              ¿Cuándo responde Claude solo?
+            </p>
+            <div className="flex gap-1.5">
+              {(['OFF', 'AFTER_HOURS', 'ALWAYS'] as AutoMode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => void update.mutateAsync({ autoMode: m })}
+                  className={`flex-1 rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${
+                    mode === m
+                      ? 'bg-brand text-on-brand'
+                      : 'bg-surface-sunken text-content-secondary hover:bg-brand-tint'
+                  }`}
+                >
+                  {autoModeInfo[m].label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] text-content-muted">{autoModeInfo[mode].hint}</p>
+            {mode !== 'OFF' && !data?.configured && (
+              <p className="mt-1 text-[11px] text-warning">
+                ⚠ Requiere conectar la API de Claude para funcionar.
+              </p>
+            )}
+          </div>
+
+          {mode === 'AFTER_HOURS' && (
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-content-muted">
+                Horario de oficina (Faviola atiende)
+              </p>
+              <div className="flex items-center gap-2 text-xs text-content">
+                <HourSelect
+                  value={data?.hoursStart ?? 9}
+                  onChange={(h) => void update.mutateAsync({ hoursStart: h })}
+                />
+                <span className="text-content-muted">a</span>
+                <HourSelect
+                  value={data?.hoursEnd ?? 19}
+                  onChange={(h) => void update.mutateAsync({ hoursEnd: h })}
+                />
+              </div>
+            </div>
+          )}
+
+          {mode !== 'OFF' && (
+            <p className="rounded-lg bg-surface-raised p-2.5 text-[11px] leading-relaxed text-content-muted">
+              🛟 <b className="text-content-secondary">Filtro de seguridad:</b> Claude responde solo
+              consultas informativas. Si el cliente quiere negociar precio, cerrar la compra,
+              agendar visita o es un tema delicado,{' '}
+              <b>no responde y te lo marca como “Requiere Faviola”.</b>
+            </p>
+          )}
+
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-content-muted">
+              Conocimiento del negocio
+            </p>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={5}
+              placeholder={
+                'Ej. Atiendo de lunes a sábado de 9am a 7pm. Trabajo con crédito hipotecario de BCP e Interbank. Mi comisión es 3%. Siempre ofrezco agendar una visita.'
+              }
+              className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus-visible:border-brand focus-visible:outline-none"
+            />
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-[11px] text-success">{saved ? '✓ Guardado' : ''}</span>
+              <Button
+                variant="brand"
+                size="sm"
+                onClick={() => void saveInstructions()}
+                disabled={update.isPending}
+              >
+                Guardar
+              </Button>
+            </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function HourSelect({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (h: number) => void;
+}): ReactNode {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="rounded-lg border border-border bg-surface-sunken px-2 py-1 text-xs text-content focus-visible:border-brand focus-visible:outline-none"
+    >
+      {Array.from({ length: 24 }, (_, h) => (
+        <option key={h} value={h}>
+          {String(h).padStart(2, '0')}:00
+        </option>
+      ))}
+    </select>
   );
 }
 

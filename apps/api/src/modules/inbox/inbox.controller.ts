@@ -84,7 +84,17 @@ export class InboxController {
     @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(aiSettingsSchema)) dto: AiSettingsDto,
   ) {
-    return this.inbox.updateAiSettings(user.tenantId, dto.instructions);
+    return this.inbox.updateAiSettings(user.tenantId, dto);
+  }
+
+  @Post('conversations/:id/inbound')
+  @RequirePermissions('inbox.write')
+  receiveInbound(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(sendMessageSchema)) dto: SendMessageDto,
+  ) {
+    return this.inbox.receiveInbound(user.tenantId, id, dto.body);
   }
 
   @Post('ai')
