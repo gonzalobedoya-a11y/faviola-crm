@@ -310,14 +310,16 @@ model Property {
   updatedAt     DateTime       @updatedAt
   deletedAt     DateTime?
 
-  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  agent         User            @relation(fields: [agentId], references: [id], onDelete: Restrict)
-  owner         Client?         @relation(fields: [ownerClientId], references: [id], onDelete: SetNull)
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  agent         User               @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  owner         Client?            @relation(fields: [ownerClientId], references: [id], onDelete: SetNull)
   media         PropertyMedia[]
   matches       Match[]
   deals         Deal[]
   visits        Visit[]
   conversations Conversation[]
+  legal         PropertyLegal?
+  documents     PropertyDocument[]
 
   @@unique([tenantId, code])
   @@index([tenantId, status])
@@ -646,6 +648,53 @@ model Conversation {
   @@index([tenantId, channel])
   @@index([tenantId, lastMessageAt])
   @@map("conversations")
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Legal — expediente documental por propiedad
+// ─────────────────────────────────────────────────────────────
+
+enum LegalDocType {
+  TITULO_DOMINIO
+  PARTIDA
+  DNI
+  ESTUDIO_TITULO
+  CORRETAJE
+  OTROS
+}
+
+/// Metadatos del expediente legal (1:1 con la propiedad).
+model PropertyLegal {
+  id              String    @id @default(uuid())
+  tenantId        String
+  propertyId      String    @unique
+  contract        String    @default("EXCLUSIVO")
+  corretajeExpiry DateTime?
+  cancelled       Boolean   @default(false)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("property_legal")
+}
+
+/// Documento legal subido (título, partida, DNI, etc.).
+model PropertyDocument {
+  id         String       @id @default(uuid())
+  tenantId   String
+  propertyId String
+  type       LegalDocType
+  name       String
+  url        String
+  createdAt  DateTime     @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, propertyId])
+  @@map("property_documents")
 }
 
 /// Mensaje individual dentro de una conversación.

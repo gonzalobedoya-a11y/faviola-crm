@@ -93,6 +93,7 @@ export interface AiSettings {
   autoMode: AutoMode;
   hoursStart: number;
   hoursEnd: number;
+  workDays: number[];
   configured: boolean;
   model: string;
 }
@@ -108,7 +109,9 @@ export function useUpdateAiSettings() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (
-      patch: Partial<Pick<AiSettings, 'instructions' | 'autoMode' | 'hoursStart' | 'hoursEnd'>>,
+      patch: Partial<
+        Pick<AiSettings, 'instructions' | 'autoMode' | 'hoursStart' | 'hoursEnd' | 'workDays'>
+      >,
     ) => httpClient.patch<AiSettings>('/inbox/ai/settings', patch),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inbox', 'ai-settings'] }),
   });

@@ -18,6 +18,7 @@ interface AiSettings {
   autoMode: AutoMode;
   hoursStart: number;
   hoursEnd: number;
+  workDays: number[];
   configured: boolean;
   model: string;
 }
@@ -253,6 +254,7 @@ export class InboxService {
         : 'OFF',
       hoursStart: typeof s.hoursStart === 'number' ? s.hoursStart : 9,
       hoursEnd: typeof s.hoursEnd === 'number' ? s.hoursEnd : 19,
+      workDays: Array.isArray(s.workDays) ? (s.workDays as number[]) : [1, 2, 3, 4, 5, 6], // lunes a sábado por defecto
       configured: this.ai.isConfigured,
       model: this.ai.model,
     };
@@ -260,7 +262,9 @@ export class InboxService {
 
   async updateAiSettings(
     tenantId: string,
-    patch: Partial<Pick<AiSettings, 'instructions' | 'autoMode' | 'hoursStart' | 'hoursEnd'>>,
+    patch: Partial<
+      Pick<AiSettings, 'instructions' | 'autoMode' | 'hoursStart' | 'hoursEnd' | 'workDays'>
+    >,
   ) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -271,6 +275,7 @@ export class InboxService {
     if (patch.autoMode !== undefined) settings.autoMode = patch.autoMode;
     if (patch.hoursStart !== undefined) settings.hoursStart = patch.hoursStart;
     if (patch.hoursEnd !== undefined) settings.hoursEnd = patch.hoursEnd;
+    if (patch.workDays !== undefined) settings.workDays = patch.workDays;
     await this.prisma.tenant.update({
       where: { id: tenantId },
       data: { settings: settings as Prisma.InputJsonObject },
@@ -393,10 +398,12 @@ export class InboxService {
     });
   }
 
-  /** ¿Estamos en horario de oficina? (hora de Lima, UTC-5). */
+  /** ¿Estamos en horario de oficina? (hora y día de Lima, UTC-5). */
   private isBusinessHours(settings: AiSettings): boolean {
-    const limaHour = (new Date().getUTCHours() - 5 + 24) % 24;
-    return limaHour >= settings.hoursStart && limaHour < settings.hoursEnd;
+    const lima = new Date(Date.now() - 5 * 3600000);
+    if (!settings.workDays.includes(lima.getUTCDay())) return false;
+    const hour = lima.getUTCHours();
+    return hour >= settings.hoursStart && hour < settings.hoursEnd;
   }
 
   /** Asistente Claude: responde una consulta o sugiere una respuesta al cliente. */

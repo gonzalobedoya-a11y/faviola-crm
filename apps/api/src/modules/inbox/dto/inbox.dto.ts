@@ -28,6 +28,9 @@ export const aiSettingsSchema = z.object({
   autoMode: z.enum(['OFF', 'AFTER_HOURS', 'ALWAYS']).optional(),
   hoursStart: z.number().int().min(0).max(23).optional(),
   hoursEnd: z.number().int().min(0).max(23).optional(),
+  // Días de atención de Faviola (0=domingo … 6=sábado). Fuera de estos días,
+  // el modo "Fuera de horario" responde automático todo el día.
+  workDays: z.array(z.number().int().min(0).max(6)).max(7).optional(),
 });
 
 export const aiAssistSchema = z.object({
