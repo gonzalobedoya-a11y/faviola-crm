@@ -89,7 +89,11 @@ export default function MessagesPage(): ReactNode {
   // Selecciona la primera conversación automáticamente.
   useEffect(() => {
     const first = conversations[0];
-    if (!selectedId && first) setSelectedId(first.id);
+    const selectedStillVisible = conversations.some(
+      (conversation) => conversation.id === selectedId,
+    );
+    if (first && (!selectedId || !selectedStillVisible)) setSelectedId(first.id);
+    if (!first && selectedId) setSelectedId(null);
   }, [conversations, selectedId]);
 
   return (
@@ -106,14 +110,22 @@ export default function MessagesPage(): ReactNode {
             const meta = channelMeta[account.channel];
             const connected = account.status === 'CONNECTED';
             return (
-              <span
+              <button
                 key={account.id}
+                type="button"
                 title={`${meta.label}: ${channelStatusLabel[account.status]}`}
-                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+                onClick={() => setChannel(account.channel)}
+                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition hover:-translate-y-px hover:shadow-elevation-1"
                 style={{
-                  borderColor: connected ? meta.color : 'var(--border-strong)',
+                  borderColor:
+                    channel === account.channel
+                      ? meta.color
+                      : connected
+                        ? meta.color
+                        : 'var(--border-strong)',
                   color: connected ? meta.color : 'var(--content-muted)',
-                  background: connected ? meta.bg : 'transparent',
+                  background:
+                    channel === account.channel ? meta.bg : connected ? meta.bg : 'transparent',
                 }}
               >
                 <ChannelLogo channel={account.channel} size={16} />
@@ -122,7 +134,7 @@ export default function MessagesPage(): ReactNode {
                   className="h-1.5 w-1.5 rounded-full"
                   style={{ background: connected ? '#3faa6a' : '#c8a54a' }}
                 />
-              </span>
+              </button>
             );
           })}
           <Button asChild variant="brand" size="sm">
