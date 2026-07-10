@@ -77,6 +77,7 @@ function timeAgo(iso: string): string {
 
 export default function MessagesPage(): ReactNode {
   const [channel, setChannel] = useState<InboxChannel | undefined>();
+  const [channelFocus, setChannelFocus] = useState(false);
   const [onlyUnread, setOnlyUnread] = useState(false);
   const [q, setQ] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -96,6 +97,16 @@ export default function MessagesPage(): ReactNode {
     if (!first && selectedId) setSelectedId(null);
   }, [conversations, selectedId]);
 
+  const selectTopChannel = (nextChannel: InboxChannel): void => {
+    setChannel(nextChannel);
+    setChannelFocus(true);
+  };
+
+  const selectListChannel = (nextChannel?: InboxChannel): void => {
+    setChannel(nextChannel);
+    setChannelFocus(false);
+  };
+
   return (
     <div className="flex h-[calc(100vh-7.5rem)] flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -114,7 +125,7 @@ export default function MessagesPage(): ReactNode {
                 key={account.id}
                 type="button"
                 title={`${meta.label}: ${channelStatusLabel[account.status]}`}
-                onClick={() => setChannel(account.channel)}
+                onClick={() => selectTopChannel(account.channel)}
                 className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition hover:-translate-y-px hover:shadow-elevation-1"
                 style={{
                   borderColor:
@@ -146,7 +157,13 @@ export default function MessagesPage(): ReactNode {
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[20rem_1fr] xl:grid-cols-[20rem_1fr_20rem]">
+      <div
+        className={`grid min-h-0 flex-1 grid-cols-1 gap-4 ${
+          channelFocus
+            ? 'lg:grid-cols-[18rem_minmax(0,1fr)]'
+            : 'lg:grid-cols-[20rem_1fr] xl:grid-cols-[20rem_1fr_20rem]'
+        }`}
+      >
         {/* Panel izquierdo: lista */}
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface-raised shadow-elevation-1">
           <div className="space-y-3 border-b border-border bg-surface-raised p-3.5">
@@ -179,7 +196,7 @@ export default function MessagesPage(): ReactNode {
             <div className="flex flex-wrap items-center gap-1.5">
               <ChannelFilterChip
                 active={!channel}
-                onClick={() => setChannel(undefined)}
+                onClick={() => selectListChannel(undefined)}
                 color="var(--brand-deep)"
                 bg="var(--brand-tint)"
               >
@@ -190,7 +207,7 @@ export default function MessagesPage(): ReactNode {
                 <ChannelFilterChip
                   key={c}
                   active={channel === c}
-                  onClick={() => setChannel(c)}
+                  onClick={() => selectListChannel(c)}
                   color={channelMeta[c].color}
                   bg={channelMeta[c].bg}
                 >
@@ -273,7 +290,7 @@ export default function MessagesPage(): ReactNode {
         <Thread conversationId={selectedId} aiConfigured={data?.counts.aiConfigured ?? false} />
 
         {/* Panel derecho: contexto + IA */}
-        <ContextPanel conversationId={selectedId} allTags={data?.tags ?? []} />
+        {!channelFocus && <ContextPanel conversationId={selectedId} allTags={data?.tags ?? []} />}
       </div>
     </div>
   );
